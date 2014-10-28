@@ -1,39 +1,22 @@
 package cz.davidkuna.remotecontrolserver;
 
-import java.net.ServerSocket;
-
 import android.support.v7.app.ActionBarActivity;
-import android.support.v7.app.ActionBar;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.os.Build;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.ServerSocket;
-import java.net.Socket;
-
-import android.app.Activity;
-import android.os.Bundle;
-import android.os.Handler;
 import android.widget.TextView;
 
-public class RemoteControlMainActivity extends ActionBarActivity {
+public class MainActivity extends ActionBarActivity {
 	
 	public static final String LOGTAG = "RC_SERVER";
 
 	private SocketServer socketServer;
 
 	public static TextView text;
-
-	
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
