@@ -16,6 +16,8 @@ import android.util.Log;
 public class GPSTracker extends Service implements LocationListener {
 	 
     private final Context mContext;
+    
+    private final String LOGTAG = "GPS_TRACKER";
  
     // flag for GPS status
     boolean isGPSEnabled = false;
@@ -149,6 +151,7 @@ public class GPSTracker extends Service implements LocationListener {
      * Function to show settings alert dialog
      * */
     public void showSettingsAlert(){
+    	Log.d(LOGTAG, "GPS is not enabled");
         AlertDialog.Builder alertDialog = new AlertDialog.Builder(mContext);
       
         // Setting Dialog Title

@@ -148,8 +148,6 @@ public class MainActivity extends ActionBarActivity implements SendClientMessage
 			toggleInternalSensors.setOnClickListener(this);
 			toggleGPSTracker.setOnClickListener(this);
 			
-			gpsTracker = new GPSTracker(getApplicationContext());
-			
 			return rootView;
 		}
 		
