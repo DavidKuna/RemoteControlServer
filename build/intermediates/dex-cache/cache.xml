@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<items version="2" >
+
+    <item
+        jar="/opt/android-sdk/extras/android/m2repository/com/android/support/support-v4/18.0.0/support-v4-18.0.0.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="44ec51e9d395a47aab135e5e1b556c0007442156">
+        <dex dex="/home/gobbl3r/AndroidstudioProjects/RemoteControlServer/app/build/intermediates/pre-dexed/debug/support-v4-18.0.0-ec5f105e7995ffae3adacb5bacd4960ee0096747.jar" />
+    </item>
+    <item
+        jar="/home/gobbl3r/AndroidstudioProjects/RemoteControlServer/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/18.0.0/classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="8f11f56e350eacabf2273f646d981356eea0ed77">
+        <dex dex="/home/gobbl3r/AndroidstudioProjects/RemoteControlServer/app/build/intermediates/pre-dexed/debug/classes-ae9c6d75254388fe26753446569b8a5466d2f953.jar" />
+    </item>
+
+</items>

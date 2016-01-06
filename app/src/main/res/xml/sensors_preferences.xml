@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+        xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory
+            android:title="@string/accelerometer">
+
+        <CheckBoxPreference
+            	android:id="@+id/accelerometr_enabled"
+                android:key="accelerometr_enabled"
+                android:title="@string/enable_sensor"
+                android:summary="@string/check_for_enable" />
+
+    </PreferenceCategory>
+    
+    <PreferenceCategory
+            android:title="@string/gyroscope">
+
+        <CheckBoxPreference
+            	android:id="@+id/gyroscope_enabled"
+                android:key="gyroscope_enabled"
+                android:title="@string/enable_sensor"
+                android:summary="@string/check_for_enable" />
+
+    </PreferenceCategory>
+    
+    <PreferenceCategory
+            android:title="@string/compass">
+
+        <CheckBoxPreference
+            	android:id="@+id/compass_enabled"
+                android:key="compass_enabled"
+                android:title="@string/enable_sensor"
+                android:summary="@string/check_for_enable" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>
