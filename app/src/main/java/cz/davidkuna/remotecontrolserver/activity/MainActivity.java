@@ -6,6 +6,8 @@ import cz.davidkuna.remotecontrolserver.sensors.SensorController;
 import cz.davidkuna.remotecontrolserver.socket.SendClientMessageListener;
 import cz.davidkuna.remotecontrolserver.socket.SocketServer;
 import cz.davidkuna.remotecontrolserver.socket.SocketServerEventListener;
+import cz.davidkuna.remotecontrolserver.socket.UDPServer;
+
 import android.support.v7.app.ActionBarActivity;
 import android.support.v4.app.Fragment;
 import android.content.Intent;
@@ -27,6 +29,7 @@ public class MainActivity extends ActionBarActivity implements SendClientMessage
 	public static final int EVENTS_GPS = 1;
 	public static final int EVENTS_ACCELEROMETER = 2;
 
+	private UDPServer udpServer = null;
 	private SocketServer socketServer;
 	private SensorController sensorController;
 	private GPSTracker gpsTracker = null;
@@ -91,6 +94,11 @@ public class MainActivity extends ActionBarActivity implements SendClientMessage
 			socketServer.start();
 		}
     }
+
+	public void startUDPServer() {
+		udpServer = new UDPServer();
+		udpServer.runUdpServer();
+	}
     
     public boolean isSocketServerRunning() {
     	if (socketServer == null || socketServer.isClosed()) {
@@ -154,7 +162,8 @@ public class MainActivity extends ActionBarActivity implements SendClientMessage
 		@Override
 		public void onClick(View view) {
 			if (view.getId() == R.id.toggleSocketServer) {
-				toggleSocketServer();			
+				toggleSocketServer();
+				toggleUDPServer();
 			} else if (view.getId() == R.id.toggleInternalSensors) {
 				toggleSensors();
 			} else if (view.getId() == R.id.toggleGPSTracker) {
@@ -167,6 +176,14 @@ public class MainActivity extends ActionBarActivity implements SendClientMessage
 				startSocketServer();
 			} else {
 				socketServer.close();
+			}
+		}
+
+		private void toggleUDPServer() {
+			if (!isSocketServerRunning()) {
+				startUDPServer();
+			} else {
+				udpServer.stopUDPServer();
 			}
 		}
 		
