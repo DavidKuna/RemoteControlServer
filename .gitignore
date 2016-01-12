@@ -1,4 +1,7 @@
-
+app/build/*
+build/*
 *.classpath
 *.directory
 *.project
+.gradle/*
+.idea/*
