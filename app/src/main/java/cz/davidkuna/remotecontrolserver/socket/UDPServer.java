@@ -8,6 +8,8 @@ import android.util.Log;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 
+import cz.davidkuna.remotecontrolserver.sensors.SensorController;
+
 /**
  * Created by David Kuna on 6.1.16.
  */
@@ -18,7 +20,7 @@ public class UDPServer {
     private static final int MAX_UDP_DATAGRAM_LEN = 4096;
 
     @SuppressLint("NewApi")
-    public void runUdpServer()
+    public void runUdpServer(final SensorController sensorController)
     {
         async = new AsyncTask<Void, Void, Void>()
         {
@@ -42,7 +44,7 @@ public class UDPServer {
 
                         Log.i("UDP packet received", incoming.getAddress().getHostAddress() + " : " + incoming.getPort() + " - " + s);
 
-                        s = "OK : " + s;
+                        s = sensorController.getData().toString();
                         DatagramPacket dp = new DatagramPacket(s.getBytes() , s.getBytes().length , incoming.getAddress() , incoming.getPort());
                         ds.send(dp);
 

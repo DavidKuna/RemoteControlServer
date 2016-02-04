@@ -1,6 +1,7 @@
 package cz.davidkuna.remotecontrolserver.sensors;
 
 import cz.davidkuna.remotecontrolserver.activity.MainActivity;
+import cz.davidkuna.remotecontrolserver.location.GPSTracker;
 import cz.davidkuna.remotecontrolserver.socket.SendClientMessageListener;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -19,6 +20,9 @@ public class SensorController implements SensorEventListener {
     private static Context context;
     private long lastUpdate;
     private SendClientMessageListener sendListener;
+	private String accelerometerData;
+	private String gyroscopeData;
+    private GPSTracker gpsTracker = null;
 	
 	public SensorController(Context context) {
 		SensorController.context = context;	
@@ -48,6 +52,8 @@ public class SensorController implements SensorEventListener {
     }
     
     public void closeControl() {
+        gpsTracker.stopUsingGPS();
+        gpsTracker = null;
     	mSensorManager.unregisterListener(this);
     }
 	
@@ -75,6 +81,7 @@ public class SensorController implements SensorEventListener {
 	    String message = "Accelerometer data: \nx=" + x + " \ny=" + y + " \nz=" + z;
 	    //Log.d(MainActivity.LOGTAG, "Send message: " + message);
 	    sendMessage(message);
+		accelerometerData = "x=" + x + " y=" + y + " z=" + z;
 	    float accelationSquareRoot = (x * x + y * y + z * z)
 	        / (SensorManager.GRAVITY_EARTH * SensorManager.GRAVITY_EARTH);
 	    long actualTime = event.timestamp;
@@ -96,11 +103,12 @@ public class SensorController implements SensorEventListener {
 	    String message = "Gyroscope data: \nx=" + x + " \ny=" + y + " \nz=" + z;
 	    //Log.d(MainActivity.LOGTAG, "Send message: " + message);
 		sendMessage(message);
+		gyroscopeData = "x=" + x + " y=" + y + " z=" + z;
 	}
 	
 	private void sendMessage(String message) {
 		if(sendListener != null){
-			sendListener.onSendClientMessage(message);
+			//sendListener.onSendClientMessage(message);
 		} else {
 			Log.d(MainActivity.LOGTAG, "sendListener is not set");
 		}
@@ -109,4 +117,22 @@ public class SensorController implements SensorEventListener {
 	public void setSendClientMessageListener(SendClientMessageListener eventListener) {
 		sendListener = eventListener;
 	}
+
+	public DataMessage getData() {
+		return new DataMessage()
+                .addData(Sensor.TYPE_ACCELEROMETER + "", accelerometerData)
+                .addData(Sensor.TYPE_GYROSCOPE + "", gyroscopeData)
+                .addData("GPS", getLocation());
+	}
+
+    private String getLocation() {
+        gpsTracker = new GPSTracker(context);
+        if(!gpsTracker.canGetLocation()){
+            gpsTracker.showSettingsAlert();
+            return "false";
+        } else {
+            Log.d("GPS", Double.toString(gpsTracker.getLatitude()) + ' ' + Double.toString(gpsTracker.getLongitude()));
+            return Double.toString(gpsTracker.getLatitude()) + ' ' + Double.toString(gpsTracker.getLongitude());
+        }
+    }
 }

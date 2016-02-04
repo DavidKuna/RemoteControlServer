@@ -1,6 +1,7 @@
 package cz.davidkuna.remotecontrolserver.activity;
 
 import cz.davidkuna.remotecontrolserver.R;
+import cz.davidkuna.remotecontrolserver.helpers.Network;
 import cz.davidkuna.remotecontrolserver.location.GPSTracker;
 import cz.davidkuna.remotecontrolserver.sensors.SensorController;
 import cz.davidkuna.remotecontrolserver.socket.SendClientMessageListener;
@@ -32,7 +33,6 @@ public class MainActivity extends ActionBarActivity implements SendClientMessage
 	private UDPServer udpServer = null;
 	private SocketServer socketServer;
 	private SensorController sensorController;
-	private GPSTracker gpsTracker = null;
 	
 	private TextView tvServerStatus;
 	private TextView tvConnectionStatus;
@@ -72,17 +72,10 @@ public class MainActivity extends ActionBarActivity implements SendClientMessage
     }
     
     public void enableGPSTracker() {
-    	gpsTracker = new GPSTracker(getApplicationContext());
-    	if(!gpsTracker.canGetLocation()){
-    		gpsTracker.showSettingsAlert();
-    	} else {
-    		Log.d(LOGTAG, Double.toString(gpsTracker.getLatitude()) + ' ' + Double.toString(gpsTracker.getLongitude()));
-    	}
+
     }
     
     public void disableGPSTracker() {
-    	gpsTracker.stopUsingGPS();
-    	gpsTracker = null;
     }
     
     public void startSocketServer() {
@@ -97,7 +90,7 @@ public class MainActivity extends ActionBarActivity implements SendClientMessage
 
 	public void startUDPServer() {
 		udpServer = new UDPServer();
-		udpServer.runUdpServer();
+		udpServer.runUdpServer(sensorController);
 	}
     
     public boolean isSocketServerRunning() {
@@ -146,7 +139,9 @@ public class MainActivity extends ActionBarActivity implements SendClientMessage
 			
 			text = (TextView) rootView.findViewById(R.id.tvIncomingMessages); 
 			tvServerStatus = (TextView) rootView.findViewById(R.id.tvServerStatus);
-			tvConnectionStatus = (TextView) rootView.findViewById(R.id.tvConnectionStatus);		
+			tvConnectionStatus = (TextView) rootView.findViewById(R.id.tvConnectionStatus);
+			TextView tvLocalIP = (TextView) rootView.findViewById(R.id.tvLocalIP);
+			tvLocalIP.setText(Network.getLocalIpAddress());
 
 			toggleSocketServer = (ToggleButton)rootView.findViewById(R.id.toggleSocketServer);
 			toggleInternalSensors = (ToggleButton)rootView.findViewById(R.id.toggleInternalSensors);
@@ -162,7 +157,7 @@ public class MainActivity extends ActionBarActivity implements SendClientMessage
 		@Override
 		public void onClick(View view) {
 			if (view.getId() == R.id.toggleSocketServer) {
-				toggleSocketServer();
+				//toggleSocketServer();
 				toggleUDPServer();
 			} else if (view.getId() == R.id.toggleInternalSensors) {
 				toggleSensors();
@@ -196,7 +191,7 @@ public class MainActivity extends ActionBarActivity implements SendClientMessage
 		}
 		
 		private void toggleGPS() {
-			if (gpsTracker == null) {
+			if (sensorController == null) {
 				enableGPSTracker();
 			} else {
 				disableGPSTracker();

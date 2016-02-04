@@ -104,4 +104,13 @@
         android:layout_alignLeft="@+id/textView3"
         android:text="@string/gps_tracker" />
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="0.0.0.0"
+        android:id="@+id/tvLocalIP"
+        android:layout_below="@+id/tvConnectionStatus"
+        android:layout_toRightOf="@+id/TextView01"
+        android:layout_toEndOf="@+id/TextView01" />
+
 </RelativeLayout>
