@@ -41,7 +41,9 @@ public class SensorController {
     		mGyroscope.start();
     	}
 
-        mCompass.start();
+        if(preferences.getBoolean("compass_enabled", true)) {
+            mCompass.start();
+        }
     }
     
     public void closeControl() {
@@ -66,10 +68,10 @@ public class SensorController {
 
 	public DataMessage getData() {
 		return new DataMessage()
-                .addData(Sensor.TYPE_ACCELEROMETER + "", mAccelerometer.getData())
-                .addData(Sensor.TYPE_GYROSCOPE + "", mGyroscope.getData())
-                .addData("GPS", getLocation())
-                .addData(mCompass.getSensorType() + "", mCompass.getData());
+                .addData(DataMessage.TYPE_ACCELEROMETER + "", mAccelerometer.getData())
+                .addData(DataMessage.TYPE_GYROSCOPE + "", mGyroscope.getData())
+                .addData(DataMessage.TYPE_GPS, getLocation())
+                .addData(DataMessage.TYPE_COMPASS + "", mCompass.getData());
 	}
 
     private String getLocation() {
@@ -77,7 +79,6 @@ public class SensorController {
             gpsTracker.showSettingsAlert();
             return "false";
         } else {
-            Log.d("GPS", Double.toString(gpsTracker.getLatitude()) + ' ' + Double.toString(gpsTracker.getLongitude()));
             return Double.toString(gpsTracker.getLatitude()) + ' ' + Double.toString(gpsTracker.getLongitude());
         }
     }

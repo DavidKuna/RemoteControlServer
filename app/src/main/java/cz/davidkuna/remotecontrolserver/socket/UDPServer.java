@@ -46,6 +46,7 @@ public class UDPServer {
 
                         s = sensorController.getData().toString();
                         DatagramPacket dp = new DatagramPacket(s.getBytes() , s.getBytes().length , incoming.getAddress() , 8001);
+                        Log.i("UDP packet sent", incoming.getAddress().getHostAddress() + " : " + 8001 + " - " + s);
                         ds.send(dp);
 
                     }
