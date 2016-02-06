@@ -4,13 +4,17 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorManager;
 
+import org.json.JSONArray;
+
+import java.util.ArrayList;
+
 /**
  * Created by David Kuna on 4.2.16.
  */
 public class Accelerometer extends AbstractSensor {
 
     private long lastUpdate = 0;
-    private String accelerometerData;
+    private float[] values = {0,0,0};
 
     public Accelerometer(SensorManager sensorManager) {
         super(sensorManager);
@@ -18,7 +22,7 @@ public class Accelerometer extends AbstractSensor {
 
     @Override
     protected void processEvent(SensorEvent event) {
-        float[] values = event.values;
+        values = event.values;
         // Movement
         float x = values[0];
         float y = values[1];
@@ -27,7 +31,7 @@ public class Accelerometer extends AbstractSensor {
         String message = "Accelerometer data: \nx=" + x + " \ny=" + y + " \nz=" + z;
         //Log.d(MainActivity.LOGTAG, "Send message: " + message);
         //sendMessage(message);
-        accelerometerData = "x=" + x + " y=" + y + " z=" + z;
+
         float accelationSquareRoot = (x * x + y * y + z * z)
                 / (SensorManager.GRAVITY_EARTH * SensorManager.GRAVITY_EARTH);
         long actualTime = event.timestamp;
@@ -47,6 +51,11 @@ public class Accelerometer extends AbstractSensor {
 
     @Override
     public String getData() {
-        return accelerometerData;
+        ArrayList<String> strings = new ArrayList<String>();
+        strings.add(String.valueOf(values[0]));
+        strings.add(String.valueOf(values[1]));
+        strings.add(String.valueOf(values[2]));
+
+        return new JSONArray(strings).toString();
     }
 }

@@ -4,12 +4,16 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorManager;
 
+import org.json.JSONArray;
+
+import java.util.ArrayList;
+
 /**
  * Created by David Kuna on 4.2.16.
  */
 public class Gyroscope extends AbstractSensor {
 
-    String gyroscopeData;
+    private float[] values = {0,0,0};
 
     public Gyroscope(SensorManager sensorManager) {
         super(sensorManager);
@@ -17,15 +21,13 @@ public class Gyroscope extends AbstractSensor {
 
     @Override
     protected void processEvent(SensorEvent event) {
-        float[] values = event.values;
+        values = event.values;
         // Movement
         float x = values[0];
         float y = values[1];
         float z = values[2];
         String message = "Gyroscope data: \nx=" + x + " \ny=" + y + " \nz=" + z;
         //Log.d(MainActivity.LOGTAG, "Send message: " + message);
-        //sendMessage(message);
-        gyroscopeData = "x=" + x + " y=" + y + " z=" + z;
     }
 
     @Override
@@ -35,6 +37,11 @@ public class Gyroscope extends AbstractSensor {
 
     @Override
     public String getData() {
-        return gyroscopeData;
+        ArrayList<String> strings = new ArrayList<String>();
+        strings.add(String.valueOf(values[0]));
+        strings.add(String.valueOf(values[1]));
+        strings.add(String.valueOf(values[2]));
+
+        return new JSONArray(strings).toString();
     }
 }

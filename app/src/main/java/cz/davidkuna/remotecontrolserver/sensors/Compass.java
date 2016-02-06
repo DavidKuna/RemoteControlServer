@@ -18,9 +18,7 @@ public class Compass extends AbstractSensor {
     @Override
     protected void processEvent(SensorEvent event) {
         // get the angle around the z-axis rotated
-        float degree = Math.round(event.values[0]);
-
-        data = -degree;
+        data = Math.round(event.values[0]);
     }
 
     @Override
