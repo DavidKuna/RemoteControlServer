@@ -10,6 +10,11 @@ import android.hardware.SensorManager;
 import android.preference.PreferenceManager;
 import android.util.Log;
 
+import org.json.JSONArray;
+
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+
 public class SensorController {
 
     private static Context context;
@@ -75,11 +80,16 @@ public class SensorController {
 	}
 
     private String getLocation() {
+        ArrayList<Double> data = new ArrayList<Double>();
         if(!gpsTracker.canGetLocation()){
             gpsTracker.showSettingsAlert();
-            return "false";
+            data.add(0.0);
+            data.add(0.0);
         } else {
-            return Double.toString(gpsTracker.getLatitude()) + ' ' + Double.toString(gpsTracker.getLongitude());
+            data.add(gpsTracker.getLatitude());
+            data.add(gpsTracker.getLongitude());
         }
+
+        return new JSONArray(data).toString();
     }
 }

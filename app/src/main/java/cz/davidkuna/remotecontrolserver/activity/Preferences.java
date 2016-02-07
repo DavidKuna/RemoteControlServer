@@ -2,7 +2,9 @@ package cz.davidkuna.remotecontrolserver.activity;
 
 import java.util.List;
 
+import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.CheckBoxPreference;
 import android.preference.PreferenceActivity;
@@ -18,9 +20,12 @@ public class Preferences extends PreferenceActivity {
 
     @Override
     public void onBuildHeaders(List<Header> target) {
-        loadHeadersFromResource(R.xml.preference_headers, target);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+            loadHeadersFromResource(R.xml.preference_headers, target);
+        }
     }
     
+    @SuppressLint("NewApi")
     public static class SensorsPreferencesFragment extends PreferenceFragment {
         @Override
         public void onCreate(Bundle savedInstanceState) {
