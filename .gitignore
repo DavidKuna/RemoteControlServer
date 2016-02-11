@@ -5,3 +5,6 @@ build/*
 *.project
 .gradle/*
 .idea/*
+
+# Java class files
+*.class

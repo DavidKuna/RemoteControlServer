@@ -224,4 +224,10 @@ public class MainActivity extends ActionBarActivity implements SendClientMessage
 		});	
 	}
 
+	public void cameraStreamStart(View v) {
+		Log.d("Camera Stream", "Click");
+		Intent myIntent = new Intent(MainActivity.this, RTSPserverActivity.class);
+		MainActivity.this.startActivity(myIntent);
+	}
+
 }

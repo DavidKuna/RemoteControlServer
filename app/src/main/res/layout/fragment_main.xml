@@ -113,4 +113,22 @@
         android:layout_toRightOf="@+id/TextView01"
         android:layout_toEndOf="@+id/TextView01" />
 
+    <Button
+        android:id="@+id/bCameraStream"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/toggleInternalSensors"
+        android:layout_below="@+id/toggleGPSTracker"
+        android:text="Start"
+        android:onClick="cameraStreamStart" />
+
+    <TextView
+        android:id="@+id/textView5"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/bCameraStream"
+        android:layout_alignBottom="@+id/bCameraStream"
+        android:layout_alignLeft="@+id/textView4"
+        android:text="@string/camera_stream" />
+
 </RelativeLayout>
