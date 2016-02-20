@@ -8,6 +8,7 @@ import cz.davidkuna.remotecontrolserver.socket.SendClientMessageListener;
 import cz.davidkuna.remotecontrolserver.socket.SocketServer;
 import cz.davidkuna.remotecontrolserver.socket.SocketServerEventListener;
 import cz.davidkuna.remotecontrolserver.socket.UDPServer;
+import cz.davidkuna.remotecontrolserver.video.StreamCameraActivity;
 
 import android.support.v7.app.ActionBarActivity;
 import android.support.v4.app.Fragment;
@@ -226,7 +227,7 @@ public class MainActivity extends ActionBarActivity implements SendClientMessage
 
 	public void cameraStreamStart(View v) {
 		Log.d("Camera Stream", "Click");
-		Intent myIntent = new Intent(MainActivity.this, RTSPserverActivity.class);
+		Intent myIntent = new Intent(MainActivity.this, StreamCameraActivity.class);
 		MainActivity.this.startActivity(myIntent);
 	}
 
