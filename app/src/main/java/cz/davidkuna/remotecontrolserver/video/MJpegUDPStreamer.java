@@ -191,6 +191,7 @@ import java.net.UnknownHostException;
 
 
                 dp = new DatagramPacket(buffer, length, getClientAddress(), 9000);
+                Log.d(TAG, "Datagram " + getClientAddress().toString() + " length: " + length);
                 datagramSocket.send(dp);
             } // while
         } // try
@@ -203,7 +204,7 @@ import java.net.UnknownHostException;
     private InetAddress getClientAddress() {
         InetAddress serverIp;
         try {
-            return InetAddress.getByName("192.168.1.100");
+            return InetAddress.getByName("192.168.1.105");
         } catch (UnknownHostException e) {
             Log.d("ERROR", e.toString());
             return null;
