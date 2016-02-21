@@ -15,6 +15,8 @@
 
 package cz.davidkuna.remotecontrolserver.video;
 
+import android.util.Log;
+
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -136,61 +138,61 @@ import java.net.SocketTimeoutException;
     private void acceptAndStream() throws IOException
     {
         DataOutputStream stream = null;
+        Multicast multicast = new Multicast(mPort, mBufferA.length);
+        multicast.start();
+        stream = new DataOutputStream(multicast);
+        stream.writeBytes(HTTP_HEADER);
+        stream.flush();
+        while (mRunning)
+        {
+            final byte[] buffer;
+            final int length;
+            final long timestamp;
 
-            stream = new DataOutputStream(new UDPOutputStream("192.168.1.105", mPort, mBufferA.length));
-            stream.writeBytes(HTTP_HEADER);
-            stream.flush();
-
-            while (mRunning)
+            synchronized (mBufferLock)
             {
-                final byte[] buffer;
-                final int length;
-                final long timestamp;
-
-                synchronized (mBufferLock)
+                while (!mNewJpeg)
                 {
-                    while (!mNewJpeg)
+                    try
                     {
-                        try
-                        {
-                            mBufferLock.wait();
-                        } // try
-                        catch (final InterruptedException stopMayHaveBeenCalled)
-                        {
-                            // stop() may have been called
-                            return;
-                        } // catch
-                    } // while
-
-                    mStreamingBufferA = !mStreamingBufferA;
-
-                    if (mStreamingBufferA)
+                        mBufferLock.wait();
+                    } // try
+                    catch (final InterruptedException stopMayHaveBeenCalled)
                     {
-                        buffer = mBufferA;
-                        length = mLengthA;
-                        timestamp = mTimestampA;
-                    } // if
-                    else
-                    {
-                        buffer = mBufferB;
-                        length = mLengthB;
-                        timestamp = mTimestampB;
-                    } // else
+                        // stop() may have been called
+                        return;
+                    } // catch
+                } // while
 
-                    mNewJpeg = false;
-                } // synchronized
+                mStreamingBufferA = !mStreamingBufferA;
 
-                stream.writeBytes(
-                        "Content-type: image/jpeg\r\n"
-                                + "Content-Length: " + length + "\r\n"
-                                + "X-Timestamp:" + timestamp + "\r\n"
-                                + "\r\n"
-                );
-                stream.write(buffer, 0 /* offset */, length);
-                stream.writeBytes(BOUNDARY_LINES);
-                stream.flush();
-            } // while
-        } // try
+                if (mStreamingBufferA)
+                {
+                    buffer = mBufferA;
+                    length = mLengthA;
+                    timestamp = mTimestampA;
+                } // if
+                else
+                {
+                    buffer = mBufferB;
+                    length = mLengthB;
+                    timestamp = mTimestampB;
+                } // else
+
+                mNewJpeg = false;
+            } // synchronized
+
+            stream.writeBytes(
+                    "Content-type: image/jpeg\r\n"
+                            + "Content-Length: " + length + "\r\n"
+                            + "X-Timestamp:" + timestamp + "\r\n"
+                            + "\r\n"
+            );
+            stream.write(buffer, 0 /* offset */, length);
+            stream.writeBytes(BOUNDARY_LINES);
+            stream.flush();
+        } // while
+    } // try
 
 } // class MJpegHttpStreamer
 

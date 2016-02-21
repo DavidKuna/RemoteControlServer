@@ -239,7 +239,9 @@ public class UDPOutputStream extends OutputStream {
       *****************************************************************
     */
     public void close() throws IOException {
-        dsock.close();
+        if (dsock != null) {
+            dsock.close();
+        }
         dsock = null;
         idx = 0;
     }
