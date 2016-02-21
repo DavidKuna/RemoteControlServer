@@ -15,17 +15,11 @@
 
 package cz.davidkuna.remotecontrolserver.video;
 
-import android.util.Log;
-
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
-import java.net.UnknownHostException;
 
 /* package */ final class MJpegUDPStreamer
 {
@@ -141,14 +135,11 @@ import java.net.UnknownHostException;
 
     private void acceptAndStream() throws IOException
     {
-        DatagramSocket datagramSocket = null;
-        Socket socket = null;
         DataOutputStream stream = null;
-        DatagramPacket dp;
 
-        try
-        {
-            datagramSocket = new DatagramSocket();
+            stream = new DataOutputStream(new UDPOutputStream("192.168.1.105", mPort, mBufferA.length));
+            stream.writeBytes(HTTP_HEADER);
+            stream.flush();
 
             while (mRunning)
             {
@@ -189,27 +180,17 @@ import java.net.UnknownHostException;
                     mNewJpeg = false;
                 } // synchronized
 
-
-                dp = new DatagramPacket(buffer, length, getClientAddress(), 9000);
-                Log.d(TAG, "Datagram " + getClientAddress().toString() + " length: " + length);
-                datagramSocket.send(dp);
+                stream.writeBytes(
+                        "Content-type: image/jpeg\r\n"
+                                + "Content-Length: " + length + "\r\n"
+                                + "X-Timestamp:" + timestamp + "\r\n"
+                                + "\r\n"
+                );
+                stream.write(buffer, 0 /* offset */, length);
+                stream.writeBytes(BOUNDARY_LINES);
+                stream.flush();
             } // while
         } // try
-        finally
-        {
-
-        } // finally
-    } // accept()
-
-    private InetAddress getClientAddress() {
-        InetAddress serverIp;
-        try {
-            return InetAddress.getByName("192.168.1.105");
-        } catch (UnknownHostException e) {
-            Log.d("ERROR", e.toString());
-            return null;
-        }
-    }
 
 } // class MJpegHttpStreamer
 

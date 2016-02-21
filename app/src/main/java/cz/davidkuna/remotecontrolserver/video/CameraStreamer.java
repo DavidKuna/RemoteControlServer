@@ -146,9 +146,9 @@ import java.util.List;
             } // if
 
             mRunning = false;
-            if (mMJpegHttpStreamer != null)
+            if (mMJpegUDPStreamer != null)
             {
-                mMJpegHttpStreamer.stop();
+                mMJpegUDPStreamer.stop();
             } // if
             if (mCamera != null)
             {
@@ -237,7 +237,7 @@ import java.util.List;
         // the uncompressed image.
         mJpegOutputStream = new MemoryOutputStream(mPreviewBufferSize);
 
-        final MJpegHttpStreamer streamer = new MJpegHttpStreamer(mPort, mPreviewBufferSize);
+        final MJpegUDPStreamer streamer = new MJpegUDPStreamer(mPort, mPreviewBufferSize);
         streamer.start();
 
         synchronized (mLock)
@@ -260,7 +260,7 @@ import java.util.List;
                 throw e;
             } // catch
 
-            mMJpegHttpStreamer = streamer;
+            mMJpegUDPStreamer = streamer;
             camera.startPreview();
             mCamera = camera;
         } // synchronized
@@ -304,10 +304,10 @@ import java.util.List;
                 null /* strides */);
         image.compressToJpeg(mPreviewRect, mJpegQuality, mJpegOutputStream);
 
-        mMJpegHttpStreamer.streamJpeg(mJpegOutputStream.getBuffer(), mJpegOutputStream.getLength(),
-                timestamp);
+        /*mMJpegHttpStreamer.streamJpeg(mJpegOutputStream.getBuffer(), mJpegOutputStream.getLength(),
+                timestamp);*/
 
-       //mMJpegUDPStreamer.streamJpeg(mJpegOutputStream.getBuffer(), mJpegOutputStream.getLength(), timestamp);
+        mMJpegUDPStreamer.streamJpeg(mJpegOutputStream.getBuffer(), mJpegOutputStream.getLength(), timestamp);
 
         // Clean up
         mJpegOutputStream.seek(0);
