@@ -19,13 +19,9 @@ import android.util.Log;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
-import java.net.UnknownHostException;
 
 /* package */ final class MJpegUDPStreamer
 {
@@ -141,75 +137,62 @@ import java.net.UnknownHostException;
 
     private void acceptAndStream() throws IOException
     {
-        DatagramSocket datagramSocket = null;
-        Socket socket = null;
         DataOutputStream stream = null;
-        DatagramPacket dp;
-
-        try
+        Multicast multicast = new Multicast(mPort, mBufferA.length);
+        multicast.start();
+        stream = new DataOutputStream(multicast);
+        stream.writeBytes(HTTP_HEADER);
+        stream.flush();
+        while (mRunning)
         {
-            datagramSocket = new DatagramSocket();
+            final byte[] buffer;
+            final int length;
+            final long timestamp;
 
-            while (mRunning)
+            synchronized (mBufferLock)
             {
-                final byte[] buffer;
-                final int length;
-                final long timestamp;
-
-                synchronized (mBufferLock)
+                while (!mNewJpeg)
                 {
-                    while (!mNewJpeg)
+                    try
                     {
-                        try
-                        {
-                            mBufferLock.wait();
-                        } // try
-                        catch (final InterruptedException stopMayHaveBeenCalled)
-                        {
-                            // stop() may have been called
-                            return;
-                        } // catch
-                    } // while
-
-                    mStreamingBufferA = !mStreamingBufferA;
-
-                    if (mStreamingBufferA)
+                        mBufferLock.wait();
+                    } // try
+                    catch (final InterruptedException stopMayHaveBeenCalled)
                     {
-                        buffer = mBufferA;
-                        length = mLengthA;
-                        timestamp = mTimestampA;
-                    } // if
-                    else
-                    {
-                        buffer = mBufferB;
-                        length = mLengthB;
-                        timestamp = mTimestampB;
-                    } // else
+                        // stop() may have been called
+                        return;
+                    } // catch
+                } // while
 
-                    mNewJpeg = false;
-                } // synchronized
+                mStreamingBufferA = !mStreamingBufferA;
 
+                if (mStreamingBufferA)
+                {
+                    buffer = mBufferA;
+                    length = mLengthA;
+                    timestamp = mTimestampA;
+                } // if
+                else
+                {
+                    buffer = mBufferB;
+                    length = mLengthB;
+                    timestamp = mTimestampB;
+                } // else
 
-                dp = new DatagramPacket(buffer, length, getClientAddress(), 9000);
-                Log.d(TAG, "Datagram " + getClientAddress().toString() + " length: " + length);
-                datagramSocket.send(dp);
-            } // while
-        } // try
-        finally
-        {
+                mNewJpeg = false;
+            } // synchronized
 
-        } // finally
-    } // accept()
-
-    private InetAddress getClientAddress() {
-        InetAddress serverIp;
-        try {
-            return InetAddress.getByName("192.168.1.105");
-        } catch (UnknownHostException e) {
-            Log.d("ERROR", e.toString());
-            return null;
-        }
-    }
+            stream.writeBytes(
+                    "Content-type: image/jpeg\r\n"
+                            + "Content-Length: " + length + "\r\n"
+                            + "X-Timestamp:" + timestamp + "\r\n"
+                            + "\r\n"
+            );
+            stream.write(buffer, 0 /* offset */, length);
+            stream.writeBytes(BOUNDARY_LINES);
+            stream.flush();
+        } // while
+    } // try
 
 } // class MJpegHttpStreamer
 
