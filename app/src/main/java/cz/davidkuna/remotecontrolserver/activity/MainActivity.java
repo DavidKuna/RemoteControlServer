@@ -49,8 +49,7 @@ public class MainActivity extends ActionBarActivity implements SendClientMessage
 		if (savedInstanceState == null) {
 			getSupportFragmentManager().beginTransaction()
 					.add(R.id.container, new PlaceholderFragment()).commit();
-		}					
-				
+		}
 	}
 	
 	@Override
@@ -62,21 +61,13 @@ public class MainActivity extends ActionBarActivity implements SendClientMessage
 	}
     
     public void enableSensorController() {
-    	sensorController = new SensorController(getApplicationContext());
+		sensorController = new SensorController(getApplicationContext());
 		sensorController.setSendClientMessageListener(this);
 		sensorController.start();
     }
     
     public void disableSensorController() {
     	sensorController.closeControl();
-    	sensorController = null;
-    }
-    
-    public void enableGPSTracker() {
-
-    }
-    
-    public void disableGPSTracker() {
     }
     
     public void startSocketServer() {
@@ -162,8 +153,6 @@ public class MainActivity extends ActionBarActivity implements SendClientMessage
 				toggleUDPServer();
 			} else if (view.getId() == R.id.toggleInternalSensors) {
 				toggleSensors();
-			} else if (view.getId() == R.id.toggleGPSTracker) {
-				toggleGPS();
 			}
 		}
 		
@@ -188,14 +177,6 @@ public class MainActivity extends ActionBarActivity implements SendClientMessage
 				enableSensorController();
 			} else {
 				disableSensorController();
-			}
-		}
-		
-		private void toggleGPS() {
-			if (sensorController == null) {
-				enableGPSTracker();
-			} else {
-				disableGPSTracker();
 			}
 		}
 	}
