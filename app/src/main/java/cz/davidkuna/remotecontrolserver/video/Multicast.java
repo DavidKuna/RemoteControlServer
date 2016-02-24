@@ -25,6 +25,7 @@ public class Multicast extends UDPOutputStream {
 
     private Thread mWorker = null;
     private Thread mCleaner = null;
+    private DatagramSocket ds = null;
     private volatile boolean mRunning = false;
     private int mPort;
     byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
@@ -42,8 +43,9 @@ public class Multicast extends UDPOutputStream {
         this.mPort = port;
     }
 
-    public void start()
+    public void open()
     {
+        Log.d(TAG, "OPEN");
         if (mRunning)
         {
             throw new IllegalStateException("Multicast is already running");
@@ -68,25 +70,28 @@ public class Multicast extends UDPOutputStream {
         });
 
         mCleaner.start();
-    } // start()
+    } // open()
 
     public void stop()
     {
+        Log.d(TAG, "Stopping");
         if (!mRunning)
         {
             throw new IllegalStateException("Multicast is already stopped");
-        } // if
+        }
 
         mRunning = false;
+        ds.close();
         mWorker.interrupt();
         mCleaner.interrupt();
+
+        Log.d(TAG, "Stopped");
     } // stop()
 
     private void workerRun()
     {
         byte[] lMsg = new byte[MAX_UDP_DATAGRAM_LEN];
         DatagramPacket incoming = new DatagramPacket(lMsg, lMsg.length);
-        DatagramSocket ds = null;
 
         try
         {
@@ -109,12 +114,12 @@ public class Multicast extends UDPOutputStream {
         }
         finally
         {
-            if (ds != null)
+            if (ds != null && ds.isClosed() == false)
             {
                 ds.close();
             }
         }
-    } // mainLoop()
+    }
 
     private void join(MulticastClient client) {
         int index;
@@ -160,6 +165,7 @@ public class Multicast extends UDPOutputStream {
                 client.getOutputStream().close();
             }
         }
+        Log.d(TAG, "CLOSE");
     }
 
 

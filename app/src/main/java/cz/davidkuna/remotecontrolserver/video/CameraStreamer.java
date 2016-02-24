@@ -129,7 +129,7 @@ import java.util.List;
         mLooper = worker.getLooper();
         mWorkHandler = new WorkHandler(mLooper);
         mWorkHandler.obtainMessage(MESSAGE_TRY_START_STREAMING).sendToTarget();
-    } // start()
+    } // open()
 
     /**
      *  Stop the image streamer. The camera will be released during the
@@ -183,7 +183,7 @@ import java.util.List;
         {
             // Captures the IOException from startStreamingIfRunning and
             // the InterruptException from Thread.sleep.
-            Log.w(TAG, "Failed to start camera preview", startPreviewFailed);
+            Log.w(TAG, "Failed to open camera preview", startPreviewFailed);
         } // catch
     } // tryStartStreaming()
 

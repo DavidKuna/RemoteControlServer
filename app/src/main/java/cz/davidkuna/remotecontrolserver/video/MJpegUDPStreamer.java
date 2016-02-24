@@ -19,9 +19,6 @@ import android.util.Log;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.SocketTimeoutException;
 
 /* package */ final class MJpegUDPStreamer
 {
@@ -84,7 +81,7 @@ import java.net.SocketTimeoutException;
             } // run()
         });
         mWorker.start();
-    } // start()
+    } // open()
 
     /* package */ void stop()
     {
@@ -138,60 +135,73 @@ import java.net.SocketTimeoutException;
     private void acceptAndStream() throws IOException
     {
         DataOutputStream stream = null;
-        Multicast multicast = new Multicast(mPort, mBufferA.length);
-        multicast.start();
-        stream = new DataOutputStream(multicast);
-        stream.writeBytes(HTTP_HEADER);
-        stream.flush();
-        while (mRunning)
-        {
-            final byte[] buffer;
-            final int length;
-            final long timestamp;
-
-            synchronized (mBufferLock)
-            {
-                while (!mNewJpeg)
-                {
-                    try
-                    {
-                        mBufferLock.wait();
-                    } // try
-                    catch (final InterruptedException stopMayHaveBeenCalled)
-                    {
-                        // stop() may have been called
-                        return;
-                    } // catch
-                } // while
-
-                mStreamingBufferA = !mStreamingBufferA;
-
-                if (mStreamingBufferA)
-                {
-                    buffer = mBufferA;
-                    length = mLengthA;
-                    timestamp = mTimestampA;
-                } // if
-                else
-                {
-                    buffer = mBufferB;
-                    length = mLengthB;
-                    timestamp = mTimestampB;
-                } // else
-
-                mNewJpeg = false;
-            } // synchronized
-
-            stream.writeBytes(
-                    "Content-type: image/jpeg\r\n"
-                            + "Content-Length: " + length + "\r\n"
-                            + "X-Timestamp:" + timestamp + "\r\n"
-                            + "\r\n"
-            );
-            stream.write(buffer, 0 /* offset */, length);
-            stream.writeBytes(BOUNDARY_LINES);
+        Multicast multicast = null;
+        try {
+            multicast = new Multicast(mPort, mBufferA.length);
+            multicast.open();
+            stream = new DataOutputStream(multicast);
+            stream.writeBytes(HTTP_HEADER);
             stream.flush();
-        } // while
+            while (mRunning) {
+                final byte[] buffer;
+                final int length;
+                final long timestamp;
+
+                synchronized (mBufferLock) {
+                    while (!mNewJpeg) {
+                        try {
+                            mBufferLock.wait();
+                        }
+                        catch (final InterruptedException stopMayHaveBeenCalled) {
+                            return;
+                        }
+                    }
+
+                    mStreamingBufferA = !mStreamingBufferA;
+
+                    if (mStreamingBufferA) {
+                        buffer = mBufferA;
+                        length = mLengthA;
+                        timestamp = mTimestampA;
+                    } // if
+                    else {
+                        buffer = mBufferB;
+                        length = mLengthB;
+                        timestamp = mTimestampB;
+                    } // else
+
+                    mNewJpeg = false;
+                } // synchronized
+
+                stream.writeBytes(
+                        "Content-type: image/jpeg\r\n"
+                                + "Content-Length: " + length + "\r\n"
+                                + "X-Timestamp:" + timestamp + "\r\n"
+                                + "\r\n"
+                );
+                stream.write(buffer, 0 /* offset */, length);
+                stream.writeBytes(BOUNDARY_LINES);
+                stream.flush();
+
+            } // while
+        } finally {
+            if (stream != null)
+            {
+                try
+                {
+                    Log.d(TAG, "FINALLY");
+                    stream.close();
+                }
+                catch (final IOException closingStream)
+                {
+                    System.err.println(closingStream);
+                }
+            }
+            if (multicast != null)
+            {
+                multicast.stop();
+            }
+        }
     } // try
 
 } // class MJpegHttpStreamer

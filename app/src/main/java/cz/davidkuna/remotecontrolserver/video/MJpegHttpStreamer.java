@@ -82,7 +82,7 @@ import java.net.SocketTimeoutException;
             } // run()
         });
         mWorker.start();
-    } // start()
+    } // open()
 
     /* package */ void stop()
     {
