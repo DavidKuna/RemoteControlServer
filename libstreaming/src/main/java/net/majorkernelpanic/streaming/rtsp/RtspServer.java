@@ -311,6 +311,7 @@ public class RtspServer extends Service {
 	 * @return A proper session
 	 */
 	protected Session handleRequest(String uri, Socket client) throws IllegalStateException, IOException {
+		Log.d(TAG, "URI: " + uri);
 		Session session = UriParser.parse(uri);
 		session.setOrigin(client.getLocalAddress().getHostAddress());
 		if (session.getDestination()==null) {
@@ -638,6 +639,7 @@ public class RtspServer extends Service {
 			matcher.find();
 			request.method = matcher.group(1);
 			request.uri = matcher.group(2);
+			request.uri += "?h264=200-20-320-240";
 
 			// Parsing headers of the request
 			while ( (line = input.readLine()) != null && line.length()>3 ) {

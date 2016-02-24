@@ -8,6 +8,7 @@ import cz.davidkuna.remotecontrolserver.socket.SendClientMessageListener;
 import cz.davidkuna.remotecontrolserver.socket.SocketServer;
 import cz.davidkuna.remotecontrolserver.socket.SocketServerEventListener;
 import cz.davidkuna.remotecontrolserver.socket.UDPServer;
+import cz.davidkuna.remotecontrolserver.video.StreamCameraActivity;
 
 import android.support.v7.app.ActionBarActivity;
 import android.support.v4.app.Fragment;
@@ -48,8 +49,7 @@ public class MainActivity extends ActionBarActivity implements SendClientMessage
 		if (savedInstanceState == null) {
 			getSupportFragmentManager().beginTransaction()
 					.add(R.id.container, new PlaceholderFragment()).commit();
-		}					
-				
+		}
 	}
 	
 	@Override
@@ -61,21 +61,13 @@ public class MainActivity extends ActionBarActivity implements SendClientMessage
 	}
     
     public void enableSensorController() {
-    	sensorController = new SensorController(getApplicationContext());
+		sensorController = new SensorController(getApplicationContext());
 		sensorController.setSendClientMessageListener(this);
 		sensorController.start();
     }
     
     public void disableSensorController() {
     	sensorController.closeControl();
-    	sensorController = null;
-    }
-    
-    public void enableGPSTracker() {
-
-    }
-    
-    public void disableGPSTracker() {
     }
     
     public void startSocketServer() {
@@ -161,8 +153,6 @@ public class MainActivity extends ActionBarActivity implements SendClientMessage
 				toggleUDPServer();
 			} else if (view.getId() == R.id.toggleInternalSensors) {
 				toggleSensors();
-			} else if (view.getId() == R.id.toggleGPSTracker) {
-				toggleGPS();
 			}
 		}
 		
@@ -187,14 +177,6 @@ public class MainActivity extends ActionBarActivity implements SendClientMessage
 				enableSensorController();
 			} else {
 				disableSensorController();
-			}
-		}
-		
-		private void toggleGPS() {
-			if (sensorController == null) {
-				enableGPSTracker();
-			} else {
-				disableGPSTracker();
 			}
 		}
 	}
@@ -226,7 +208,7 @@ public class MainActivity extends ActionBarActivity implements SendClientMessage
 
 	public void cameraStreamStart(View v) {
 		Log.d("Camera Stream", "Click");
-		Intent myIntent = new Intent(MainActivity.this, RTSPserverActivity.class);
+		Intent myIntent = new Intent(MainActivity.this, StreamCameraActivity.class);
 		MainActivity.this.startActivity(myIntent);
 	}
 
