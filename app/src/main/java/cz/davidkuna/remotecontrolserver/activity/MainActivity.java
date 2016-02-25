@@ -2,6 +2,7 @@ package cz.davidkuna.remotecontrolserver.activity;
 
 import cz.davidkuna.remotecontrolserver.R;
 import cz.davidkuna.remotecontrolserver.helpers.Network;
+import cz.davidkuna.remotecontrolserver.helpers.Settings;
 import cz.davidkuna.remotecontrolserver.sensors.SensorController;
 import cz.davidkuna.remotecontrolserver.socket.SendClientMessageListener;
 import cz.davidkuna.remotecontrolserver.socket.SocketServer;
@@ -22,8 +23,16 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.ToggleButton;
+
+import com.google.gson.Gson;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.WriterException;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
+import com.journeyapps.barcodescanner.BarcodeEncoder;
 
 public class MainActivity extends Activity implements SendClientMessageListener, SocketServerEventListener, OnClickListener {
 	
@@ -51,11 +60,27 @@ public class MainActivity extends Activity implements SendClientMessageListener,
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
         PowerManager powerManager =	(PowerManager) getSystemService(POWER_SERVICE);
         SurfaceHolder mPreviewDisplay = ((SurfaceView) findViewById(R.id.camera)).getHolder();
-
-
         cameraStream = new CameraStream(powerManager, prefs, mPreviewDisplay);
+
+        Settings settings = new Settings();
+        settings.setServerAddress(Network.getLocalIpAddress())
+                .setCameraUDPPort(8080);
+        Gson gson = new Gson();
+		qrCodeInit(gson.toJson(settings).toString(), 150, 150);
 	}
-	
+
+	private void qrCodeInit(String content, int width, int height) {
+		try {
+            ImageView imageView = (ImageView) findViewById(R.id.qrCode);
+			BitMatrix bitMatrix = new QRCodeWriter().encode(content, BarcodeFormat.QR_CODE, width, height);
+			BarcodeEncoder barcodeEncoder = new BarcodeEncoder();
+
+			imageView.setImageBitmap(barcodeEncoder.createBitmap(bitMatrix));
+		} catch (WriterException e) {
+			e.printStackTrace();
+		}
+	}
+
 	@Override
 	protected void onStop() {
 		super.onStop();
