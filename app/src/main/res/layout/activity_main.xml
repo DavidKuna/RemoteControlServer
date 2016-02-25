@@ -14,71 +14,76 @@
         android:layout_toStartOf="@+id/frameLayout"
         android:layout_alignParentTop="true"
         android:layout_toLeftOf="@+id/frameLayout"
-        android:layout_marginRight="10dp">
+        android:layout_marginRight="10dp"
+        android:id="@+id/frameLayout2">
 
-        <TextView
-            android:id="@+id/textView2"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignBaseline="@+id/toggleSocketServer"
-            android:layout_alignBottom="@+id/toggleSocketServer"
-            android:text="@string/sensor_data_stream" />
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="152dp"
+            android:layout_gravity="center_horizontal|top">
 
-        <TextView
-            android:id="@+id/textView5"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/camera_stream"
-            android:layout_alignBaseline="@+id/bCameraStream"
-            android:layout_alignBottom="@+id/bCameraStream"
-            android:layout_alignParentLeft="true"
-            android:layout_alignParentStart="true"
-            android:layout_gravity="left|center_vertical" />
+            <TextView
+                android:id="@+id/textView2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignBaseline="@+id/toggleSocketServer"
+                android:layout_alignBottom="@+id/toggleSocketServer"
+                android:text="@string/sensor_data_stream" />
 
-        <TextView
-            android:id="@+id/serverIp"
-            android:layout_width="104dp"
-            android:layout_height="wrap_content"
-            android:layout_gravity="left|bottom"
-            android:background="@android:color/black"
-            android:text="@string/server_ip" />
+            <TextView
+                android:id="@+id/textView5"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/camera_stream"
+                android:layout_alignBaseline="@+id/bCameraStream"
+                android:layout_alignBottom="@+id/bCameraStream"
+                android:layout_alignParentLeft="true"
+                android:layout_alignParentStart="true"
+                android:layout_gravity="left|center_vertical" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="0.0.0.0"
-            android:id="@+id/tvLocalIP"
-            android:layout_below="@+id/tvConnectionStatus"
-            android:layout_alignLeft="@+id/textView2"
-            android:layout_gravity="right|bottom" />
+            <ToggleButton
+                android:id="@+id/toggleSocketServer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="false"
+                android:textOn="Stop"
+                android:textOff="Start"
+                android:layout_alignParentRight="true"
+                android:layout_alignParentTop="true"
+                android:text="ToggleButton"
+                android:layout_gravity="right|top" />
 
-        <Button
-            android:id="@+id/bCameraStream"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Start"
-            android:onClick="cameraStreamStart"
-            android:layout_alignLeft="@+id/toggleSocketServer"
-            android:layout_alignStart="@+id/toggleSocketServer"
-            android:layout_below="@+id/toggleSocketServer"
-            android:layout_gravity="right|center_vertical" />
+            <Button
+                android:id="@+id/bCameraStream"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Start"
+                android:onClick="cameraStreamStart"
+                android:layout_alignLeft="@+id/toggleSocketServer"
+                android:layout_alignStart="@+id/toggleSocketServer"
+                android:layout_below="@+id/toggleSocketServer"
+                android:layout_gravity="right|center_vertical" />
+        </FrameLayout>
 
-        <ToggleButton
-            android:id="@+id/toggleSocketServer"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:checked="false"
-            android:textOn="Stop"
-            android:textOff="Start"
-            android:layout_alignParentRight="true"
-            android:layout_alignParentTop="true"
-            android:text="ToggleButton"
-            android:layout_gravity="right|top" />
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="180dp"
+            android:layout_gravity="center_horizontal|bottom">
+
+            <ImageView
+                android:id="@+id/qrCode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="50dp"
+                android:layout_below="@+id/tvLocalIP"
+                android:layout_gravity="left|bottom"/>
+        </FrameLayout>
+
     </FrameLayout>
 
     <FrameLayout
         android:layout_width="200dp"
-        android:layout_height="150dp"
+        android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"
@@ -90,6 +95,23 @@
             android:layout_width="200dp"
             android:layout_height="150dp"
             android:layout_gravity="center_horizontal|bottom" />
+
+        <TextView
+            android:id="@+id/serverIp"
+            android:layout_width="104dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="left|top"
+            android:background="@android:color/black"
+            android:text="@string/server_ip" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0.0.0.0"
+            android:id="@+id/tvLocalIP"
+            android:layout_below="@+id/tvConnectionStatus"
+            android:layout_alignLeft="@+id/textView2"
+            android:layout_gravity="right|top" />
     </FrameLayout>
 
 </RelativeLayout>
