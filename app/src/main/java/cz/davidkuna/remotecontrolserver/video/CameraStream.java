@@ -15,21 +15,12 @@
 
 package cz.davidkuna.remotecontrolserver.video;
 
-import android.app.Activity;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
-import android.content.pm.PackageManager;
-import android.os.AsyncTask;
-import android.os.Bundle;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
-import android.preference.PreferenceManager;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.util.Log;
 import android.view.SurfaceHolder;
-import android.view.SurfaceView;
-import android.widget.TextView;
 
 import org.apache.http.conn.util.InetAddressUtils;
 
@@ -37,12 +28,10 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.util.Enumeration;
 
-import cz.davidkuna.remotecontrolserver.R;
 
-public final class StreamCameraActivity extends Activity
-        implements SurfaceHolder.Callback
+public final class CameraStream implements SurfaceHolder.Callback
 {
-    private static final String TAG = StreamCameraActivity.class.getSimpleName();
+    private static final String TAG = CameraStream.class.getSimpleName();
 
     private static final String WAKE_LOCK_TAG = "peepers";
 
@@ -63,49 +52,34 @@ public final class StreamCameraActivity extends Activity
     private SurfaceHolder mPreviewDisplay = null;
     private CameraStreamer mCameraStreamer = null;
 
-    private String mIpAddress = "";
     private int mCameraIndex = PREF_CAMERA_INDEX_DEF;
     private boolean mUseFlashLight = PREF_FLASH_LIGHT_DEF;
     private int mPort = PREF_PORT_DEF;
     private int mJpegQuality = PREF_JPEG_QUALITY_DEF;
     private int mPrevieSizeIndex = PREF_PREVIEW_SIZE_INDEX_DEF;
-    private TextView mIpAddressView = null;
-    private LoadPreferencesTask mLoadPreferencesTask = null;
     private SharedPreferences mPrefs = null;
-    private MenuItem mSettingsMenuItem = null;
     private WakeLock mWakeLock = null;
 
-    public StreamCameraActivity()
+    private PowerManager powerManager;
+
+    public CameraStream(PowerManager powerManager, SharedPreferences prefs, SurfaceHolder preview)
     {
-        super();
-    } // constructor()
+        this.powerManager = powerManager;
+        this.mPrefs = prefs;
 
-    @Override
-    protected void onCreate(final Bundle savedInstanceState)
-    {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_stream_camera);
-
-        new LoadPreferencesTask().execute();
-
-        mPreviewDisplay = ((SurfaceView) findViewById(R.id.camera)).getHolder();
+        mPreviewDisplay = preview;
         mPreviewDisplay.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
         mPreviewDisplay.addCallback(this);
 
-        mIpAddress = tryGetIpV4Address();
-        mIpAddressView = (TextView) findViewById(R.id.ip_address);
         updatePrefCacheAndUi();
 
-        final PowerManager powerManager =
-                (PowerManager) getSystemService(POWER_SERVICE);
         mWakeLock = powerManager.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK,
                 WAKE_LOCK_TAG);
-    } // onCreate(Bundle)
+    }
 
-    @Override
-    protected void onResume()
+
+    public void start()
     {
-        super.onResume();
         mRunning = true;
         if (mPrefs != null)
         {
@@ -115,52 +89,49 @@ public final class StreamCameraActivity extends Activity
         updatePrefCacheAndUi();
         tryStartCameraStreamer();
         mWakeLock.acquire();
-    } // onResume()
+    }
 
-    @Override
-    protected void onPause()
+      protected void stop()
     {
         mWakeLock.release();
-        super.onPause();
         mRunning = false;
         if (mPrefs != null)
         {
             mPrefs.unregisterOnSharedPreferenceChangeListener(
                     mSharedPreferenceListener);
-        } // if
+        }
         ensureCameraStreamerStopped();
-    } // onPause()
+    }
 
     @Override
     public void surfaceChanged(final SurfaceHolder holder, final int format,
             final int width, final int height)
     {
-        // Ingored
-    } // surfaceChanged(SurfaceHolder, int, int, int)
+
+    }
 
     @Override
     public void surfaceCreated(final SurfaceHolder holder)
     {
+        Log.d(TAG, "surfaceCreated");
         mPreviewDisplayCreated = true;
-        tryStartCameraStreamer();
-    } // surfaceCreated(SurfaceHolder)
+    }
 
     @Override
     public void surfaceDestroyed(final SurfaceHolder holder)
     {
         mPreviewDisplayCreated = false;
-        ensureCameraStreamerStopped();
-    } // surfaceDestroyed(SurfaceHolder)
+    }
 
-    private void tryStartCameraStreamer()
+    public void tryStartCameraStreamer()
     {
         if (mRunning && mPreviewDisplayCreated && mPrefs != null)
         {
             mCameraStreamer = new CameraStreamer(mCameraIndex, mUseFlashLight, mPort,
                     mPrevieSizeIndex, mJpegQuality, mPreviewDisplay);
             mCameraStreamer.start();
-        } // if
-    } // tryStartCameraStreamer()
+        }
+    }
 
     private void ensureCameraStreamerStopped()
     {
@@ -168,56 +139,10 @@ public final class StreamCameraActivity extends Activity
         {
             mCameraStreamer.stop();
             mCameraStreamer = null;
-        } // if
-    } // stopCameraStreamer()
-
-    @Override
-    public boolean onCreateOptionsMenu(final Menu menu)
-    {
-        super.onCreateOptionsMenu(menu);
-        mSettingsMenuItem = menu.add(R.string.action_settings);
-        mSettingsMenuItem.setIcon(android.R.drawable.ic_menu_manage);
-        return true;
-    } // onCreateOptionsMenu(Menu)
-
-    @Override
-    public boolean onOptionsItemSelected(final MenuItem item)
-    {
-        if (item != mSettingsMenuItem)
-        {
-            return super.onOptionsItemSelected(item);
-        } // if
-       // startActivity(new Intent(this, PeepersPreferenceActivity.class));
-        return true;
-    } // onOptionsItemSelected(MenuItem)
-
-    private final class LoadPreferencesTask
-            extends AsyncTask<Void, Void, SharedPreferences>
-    {
-        private LoadPreferencesTask()
-        {
-            super();
-        } // constructor()
-
-        @Override
-        protected SharedPreferences doInBackground(final Void... noParams)
-        {
-            return PreferenceManager.getDefaultSharedPreferences(
-                    StreamCameraActivity.this);
-        } // doInBackground()
-
-        @Override
-        protected void onPostExecute(final SharedPreferences prefs)
-        {
-            StreamCameraActivity.this.mPrefs = prefs;
-            prefs.registerOnSharedPreferenceChangeListener(
-                    mSharedPreferenceListener);
-            updatePrefCacheAndUi();
-            tryStartCameraStreamer();
-        } // onPostExecute(SharedPreferences)
+        }
+    }
 
 
-    } // class LoadPreferencesTask
 
     private final OnSharedPreferenceChangeListener mSharedPreferenceListener =
             new OnSharedPreferenceChangeListener()
@@ -292,46 +217,15 @@ public final class StreamCameraActivity extends Activity
         {
             mJpegQuality = 100;
         } // else if
-        mIpAddressView.setText("http://" + mIpAddress + ":" + mPort + "/");
     } // updatePrefCacheAndUi()
 
     private boolean hasFlashLight()
     {
-        return getPackageManager().hasSystemFeature(
+       /*getPackageManager().hasSystemFeature(
                 PackageManager.FEATURE_CAMERA_FLASH);
+                */
+        return false;
     } // hasFlashLight()
 
-    private static String tryGetIpV4Address()
-    {
-        try
-        {
-            final Enumeration<NetworkInterface> en =
-                    NetworkInterface.getNetworkInterfaces();
-            while (en.hasMoreElements())
-            {
-                final NetworkInterface intf = en.nextElement();
-                final Enumeration<InetAddress> enumIpAddr =
-                        intf.getInetAddresses();
-                while (enumIpAddr.hasMoreElements())
-                {
-                    final InetAddress inetAddress = enumIpAddr.nextElement();
-                    if (!inetAddress.isLoopbackAddress())
-                    {
-                        final String addr = inetAddress.getHostAddress().toUpperCase();
-                        if (InetAddressUtils.isIPv4Address(addr))
-                        {
-                            return addr;
-                        }
-                    } // if
-                } // while
-            } // for
-        } // try
-        catch (final Exception e)
-        {
-            // Ignore
-        } // catch
-        return null;
-    } // tryGetIpV4Address()
-
-} // class StreamCameraActivity
+} // class CameraStream
 

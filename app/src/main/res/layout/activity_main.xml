@@ -1,7 +1,95 @@
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="cz.davidkuna.remotecontrolserver.activity.MainActivity"
-    tools:ignore="MergeRootFrame" />
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    tools:context="cz.davidkuna.remotecontrolserver.activity.MainActivity" >
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_toStartOf="@+id/frameLayout"
+        android:layout_alignParentTop="true"
+        android:layout_toLeftOf="@+id/frameLayout"
+        android:layout_marginRight="10dp">
+
+        <TextView
+            android:id="@+id/textView2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBaseline="@+id/toggleSocketServer"
+            android:layout_alignBottom="@+id/toggleSocketServer"
+            android:text="@string/sensor_data_stream" />
+
+        <TextView
+            android:id="@+id/textView5"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/camera_stream"
+            android:layout_alignBaseline="@+id/bCameraStream"
+            android:layout_alignBottom="@+id/bCameraStream"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true"
+            android:layout_gravity="left|center_vertical" />
+
+        <TextView
+            android:id="@+id/serverIp"
+            android:layout_width="104dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="left|bottom"
+            android:background="@android:color/black"
+            android:text="@string/server_ip" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0.0.0.0"
+            android:id="@+id/tvLocalIP"
+            android:layout_below="@+id/tvConnectionStatus"
+            android:layout_alignLeft="@+id/textView2"
+            android:layout_gravity="right|bottom" />
+
+        <Button
+            android:id="@+id/bCameraStream"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Start"
+            android:onClick="cameraStreamStart"
+            android:layout_alignLeft="@+id/toggleSocketServer"
+            android:layout_alignStart="@+id/toggleSocketServer"
+            android:layout_below="@+id/toggleSocketServer"
+            android:layout_gravity="right|center_vertical" />
+
+        <ToggleButton
+            android:id="@+id/toggleSocketServer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="false"
+            android:textOn="Stop"
+            android:textOff="Start"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentTop="true"
+            android:text="ToggleButton"
+            android:layout_gravity="right|top" />
+    </FrameLayout>
+
+    <FrameLayout
+        android:layout_width="200dp"
+        android:layout_height="150dp"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentTop="true"
+        android:id="@+id/frameLayout">
+
+        <SurfaceView
+            android:id="@+id/camera"
+            android:layout_width="200dp"
+            android:layout_height="150dp"
+            android:layout_gravity="center_horizontal|bottom" />
+    </FrameLayout>
+
+</RelativeLayout>

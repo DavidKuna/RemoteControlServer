@@ -96,4 +96,6 @@
     <string name="stop">Stop</string>
     <string name="start">Start</string>
     <string name="camera_stream">Camera Stream</string>
+    <string name="server_ip">Server IP</string>
+    <string name="sensor_data_stream">Sensor Data Stream</string>
 </resources>
