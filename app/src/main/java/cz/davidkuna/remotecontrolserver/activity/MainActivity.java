@@ -2,54 +2,58 @@ package cz.davidkuna.remotecontrolserver.activity;
 
 import cz.davidkuna.remotecontrolserver.R;
 import cz.davidkuna.remotecontrolserver.helpers.Network;
-import cz.davidkuna.remotecontrolserver.location.GPSTracker;
 import cz.davidkuna.remotecontrolserver.sensors.SensorController;
 import cz.davidkuna.remotecontrolserver.socket.SendClientMessageListener;
 import cz.davidkuna.remotecontrolserver.socket.SocketServer;
 import cz.davidkuna.remotecontrolserver.socket.SocketServerEventListener;
 import cz.davidkuna.remotecontrolserver.socket.UDPServer;
-import cz.davidkuna.remotecontrolserver.video.StreamCameraActivity;
+import cz.davidkuna.remotecontrolserver.video.CameraStream;
 
-import android.support.v7.app.ActionBarActivity;
-import android.support.v4.app.Fragment;
+import android.app.Activity;
+import android.content.SharedPreferences;
+import android.os.PowerManager;
+import android.preference.PreferenceManager;
 import android.content.Intent;
 import android.util.Log;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View.OnClickListener;
 import android.os.Bundle;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
-public class MainActivity extends ActionBarActivity implements SendClientMessageListener, SocketServerEventListener {
+public class MainActivity extends Activity implements SendClientMessageListener, SocketServerEventListener, OnClickListener {
 	
 	public static final String LOGTAG = "RC_SERVER";
-	
-	public static final int EVENTS_GPS = 1;
-	public static final int EVENTS_ACCELEROMETER = 2;
 
 	private UDPServer udpServer = null;
 	private SocketServer socketServer;
 	private SensorController sensorController;
-	
-	private TextView tvServerStatus;
-	private TextView tvConnectionStatus;
-	
-	public static TextView text;
-	
+
+    private CameraStream cameraStream = null;
+	private ToggleButton toggleSocketServer;
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
 		setContentView(R.layout.activity_main);
 
-		if (savedInstanceState == null) {
-			getSupportFragmentManager().beginTransaction()
-					.add(R.id.container, new PlaceholderFragment()).commit();
-		}
+		TextView tvLocalIP = (TextView) findViewById(R.id.tvLocalIP);
+		tvLocalIP.setText(Network.getLocalIpAddress());
+
+		toggleSocketServer = (ToggleButton)findViewById(R.id.toggleSocketServer);
+		toggleSocketServer.setOnClickListener(this);
+
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
+        PowerManager powerManager =	(PowerManager) getSystemService(POWER_SERVICE);
+        SurfaceHolder mPreviewDisplay = ((SurfaceView) findViewById(R.id.camera)).getHolder();
+
+
+        cameraStream = new CameraStream(powerManager, prefs, mPreviewDisplay);
 	}
 	
 	@Override
@@ -112,72 +116,38 @@ public class MainActivity extends ActionBarActivity implements SendClientMessage
 		}
 		return super.onOptionsItemSelected(item);
 	}
-	
-	/**
-	 * A placeholder fragment containing a simple view.
-	 */
-	public class PlaceholderFragment extends Fragment implements OnClickListener {
-		
-		private ToggleButton toggleSocketServer, toggleInternalSensors, toggleGPSTracker;
-		
-		public PlaceholderFragment() {
-		}
 
-		@Override
-		public View onCreateView(LayoutInflater inflater, ViewGroup container,
-				Bundle savedInstanceState) {
-			View rootView = inflater.inflate(R.layout.fragment_main, container,
-					false);
-			
-			text = (TextView) rootView.findViewById(R.id.tvIncomingMessages); 
-			tvServerStatus = (TextView) rootView.findViewById(R.id.tvServerStatus);
-			tvConnectionStatus = (TextView) rootView.findViewById(R.id.tvConnectionStatus);
-			TextView tvLocalIP = (TextView) rootView.findViewById(R.id.tvLocalIP);
-			tvLocalIP.setText(Network.getLocalIpAddress());
+	@Override
+	public void onClick(View view) {
+		if (view.getId() == R.id.toggleSocketServer) {
+			//toggleSocketServer();
+			toggleUDPServer();
+		}
+	}
 
-			toggleSocketServer = (ToggleButton)rootView.findViewById(R.id.toggleSocketServer);
-			toggleInternalSensors = (ToggleButton)rootView.findViewById(R.id.toggleInternalSensors);
-			toggleGPSTracker = (ToggleButton)rootView.findViewById(R.id.toggleGPSTracker);
-			
-			toggleSocketServer.setOnClickListener(this);
-			toggleInternalSensors.setOnClickListener(this);
-			toggleGPSTracker.setOnClickListener(this);
-			
-			return rootView;
+	private void toggleSocketServer() {
+		if (!isSocketServerRunning()) {
+			startSocketServer();
+		} else {
+			socketServer.close();
 		}
-		
-		@Override
-		public void onClick(View view) {
-			if (view.getId() == R.id.toggleSocketServer) {
-				//toggleSocketServer();
-				toggleUDPServer();
-			} else if (view.getId() == R.id.toggleInternalSensors) {
-				toggleSensors();
-			}
-		}
-		
-		private void toggleSocketServer() {
-			if (!isSocketServerRunning()) {
-				startSocketServer();
-			} else {
-				socketServer.close();
-			}
-		}
+	}
 
-		private void toggleUDPServer() {
-			if (!isSocketServerRunning()) {
-				startUDPServer();
-			} else {
-				udpServer.stopUDPServer();
-			}
+	private void toggleUDPServer() {
+		if (!isSocketServerRunning()) {
+			enableSensorController();
+			startUDPServer();
+		} else {
+			udpServer.stopUDPServer();
+			disableSensorController();
 		}
-		
-		private void toggleSensors() {
-			if (sensorController == null) {
-				enableSensorController();
-			} else {
-				disableSensorController();
-			}
+	}
+
+	private void toggleSensors() {
+		if (sensorController == null) {
+			enableSensorController();
+		} else {
+			disableSensorController();
 		}
 	}
 
@@ -185,31 +155,32 @@ public class MainActivity extends ActionBarActivity implements SendClientMessage
 	public void onSendClientMessage(String message) {
 		if(socketServer != null) {
 			socketServer.sendMessage(message);
-		}		
+		}
 	}
 
 	@Override
-	public void onSocketServerEvent(final int event) {		
-		runOnUiThread(new Runnable() {  
+	public void onSocketServerEvent(final int event) {
+		runOnUiThread(new Runnable() {
             @Override
             public void run() {
-            	if(event == SocketServer.EVENT_START) {
-        			tvServerStatus.setText(R.string.start_server);
-        		} else if (event == SocketServer.EVENT_STOP) {
-        			tvServerStatus.setText(R.string.stoped);
-        		} else if (event == SocketServer.EVENT_CLIENT_CONNECT) {
-        			tvConnectionStatus.setText(R.string.connection_status);
-        		} else if (event == SocketServer.EVENT_CLIENT_DISCONNECT) {
-        			tvConnectionStatus.setText(R.string.disconnected);
-        		}
+                if (event == SocketServer.EVENT_START) {
+                    Log.d(LOGTAG, getString(R.string.start_server));
+                } else if (event == SocketServer.EVENT_STOP) {
+                    Log.d(LOGTAG, getString(R.string.stoped));
+                } else if (event == SocketServer.EVENT_CLIENT_CONNECT) {
+                    Log.d(LOGTAG, getString(R.string.connection_status));
+                } else if (event == SocketServer.EVENT_CLIENT_DISCONNECT) {
+                    Log.d(LOGTAG, getString(R.string.disconnected));
+                }
             }
-		});	
+        });
 	}
 
 	public void cameraStreamStart(View v) {
 		Log.d("Camera Stream", "Click");
-		Intent myIntent = new Intent(MainActivity.this, StreamCameraActivity.class);
-		MainActivity.this.startActivity(myIntent);
+
+		cameraStream.start();
 	}
+
 
 }

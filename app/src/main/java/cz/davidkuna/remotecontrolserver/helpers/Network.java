@@ -16,21 +16,25 @@ public class Network {
     public static String getLocalIpAddress() {
         String ipv4;
         try {
-            for (Enumeration<NetworkInterface> en = NetworkInterface
-                    .getNetworkInterfaces(); en.hasMoreElements();) {
-                NetworkInterface intf = en.nextElement();
-                for (Enumeration<InetAddress> enumIpAddr = intf
-                        .getInetAddresses(); enumIpAddr.hasMoreElements();) {
-                    InetAddress inetAddress = enumIpAddr.nextElement();
-
-                    // for getting IPV4 format
-                    if (!inetAddress.isLoopbackAddress() && InetAddressUtils.isIPv4Address(ipv4 = inetAddress.getHostAddress())) {
-
-                        String ip = inetAddress.getHostAddress().toString();
-                        return ipv4;
-                    }
-                }
-            }
+            final Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces();
+            while (en.hasMoreElements())
+            {
+                final NetworkInterface intf = en.nextElement();
+                final Enumeration<InetAddress> enumIpAddr =
+                        intf.getInetAddresses();
+                while (enumIpAddr.hasMoreElements())
+                {
+                    final InetAddress inetAddress = enumIpAddr.nextElement();
+                    if (!inetAddress.isLoopbackAddress())
+                    {
+                        final String addr = inetAddress.getHostAddress().toUpperCase();
+                        if (InetAddressUtils.isIPv4Address(addr))
+                        {
+                            return addr;
+                        }
+                    } // if
+                } // while
+            } // for
         } catch (Exception ex) {
             Log.e("IP Address", ex.toString());
         }
