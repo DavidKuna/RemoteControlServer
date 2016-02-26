@@ -7,14 +7,19 @@ import android.hardware.SensorManager;
 import org.json.JSONArray;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * Created by David Kuna on 4.2.16.
  */
 public class Accelerometer extends AbstractSensor {
 
+    public static int VERTICAL_MODE = 1;
+    public static int HORIZONTAL_MODE = 2;
+
     private long lastUpdate = 0;
     private float[] values = {0,0,0};
+    private int calibration = VERTICAL_MODE;
 
     public Accelerometer(SensorManager sensorManager) {
         super(sensorManager);
@@ -22,15 +27,12 @@ public class Accelerometer extends AbstractSensor {
 
     @Override
     protected void processEvent(SensorEvent event) {
-        values = event.values;
+        this.values = calibrate(event.values);
+
         // Movement
         float x = values[0];
         float y = values[1];
         float z = values[2];
-        //Log.d(MainActivity.LOGTAG, "Sensor data: \nx=" + x + " \ny=" + y + " \nz=" + z);
-        String message = "Accelerometer data: \nx=" + x + " \ny=" + y + " \nz=" + z;
-        //Log.d(MainActivity.LOGTAG, "Send message: " + message);
-        //sendMessage(message);
 
         float accelationSquareRoot = (x * x + y * y + z * z)
                 / (SensorManager.GRAVITY_EARTH * SensorManager.GRAVITY_EARTH);
@@ -42,6 +44,19 @@ public class Accelerometer extends AbstractSensor {
             }
             lastUpdate = actualTime;
         }
+    }
+
+    public void setCalibration(int mode) {
+        this.calibration = mode;
+    }
+
+    private float[] calibrate(float[] val) {
+        if (calibration == VERTICAL_MODE) {
+            float [] tmp = Arrays.copyOf(val, val.length);
+            val = new float[]{-tmp[2], -tmp[1], tmp[0]};
+        }
+
+        return val;
     }
 
     @Override
