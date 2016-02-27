@@ -5,9 +5,12 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.util.Log;
 
+import com.google.gson.Gson;
+
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 
+import cz.davidkuna.remotecontrolserver.helpers.Command;
 import cz.davidkuna.remotecontrolserver.sensors.SensorController;
 
 /**
@@ -27,7 +30,6 @@ public class UDPServer {
             @Override
             protected Void doInBackground(Void... params)
             {
-                String lText;
                 byte[] lMsg = new byte[MAX_UDP_DATAGRAM_LEN];
                 DatagramPacket incoming = new DatagramPacket(lMsg, lMsg.length);
                 DatagramSocket ds = null;
@@ -44,10 +46,22 @@ public class UDPServer {
 
                         Log.i("UDP packet received", incoming.getAddress().getHostAddress() + " : " + incoming.getPort() + " - " + s);
 
-                        s = sensorController.getData().toString();
-                        DatagramPacket dp = new DatagramPacket(s.getBytes() , s.getBytes().length , incoming.getAddress() , 8001);
-                        Log.i("UDP packet sent", incoming.getAddress().getHostAddress() + " : " + 8001 + " - " + s);
-                        ds.send(dp);
+                        Command command = new Gson().fromJson(s, Command.class);
+
+                        if (command.getName().equals(Command.GET_DATA)) {
+                            s = sensorController.getData().toString();
+                            DatagramPacket dp = new DatagramPacket(s.getBytes(), s.getBytes().length, incoming.getAddress(), 8001);
+                            Log.i("UDP packet sent", incoming.getAddress().getHostAddress() + " : " + 8001 + " - " + s);
+                            ds.send(dp);
+                        } else if (command.getName().equals(Command.MOVE_UP)) {
+                            Log.d("MOVE", "UP");
+                        } else if (command.getName().equals(Command.MOVE_DOWN)) {
+                            Log.d("MOVE", "DOWN");
+                        } else if (command.getName().equals(Command.MOVE_LEFT)) {
+                            Log.d("MOVE", "LEFT");
+                        } else if (command.getName().equals(Command.MOVE_RIGHT)) {
+                            Log.d("MOVE", "RIGHT");
+                        }
 
                     }
                 }
