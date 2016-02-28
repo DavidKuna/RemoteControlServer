@@ -44,14 +44,14 @@ public class UDPServer {
                         byte[] data = incoming.getData();
                         String s = new String(data, 0, incoming.getLength());
 
-                        Log.i("UDP packet received", incoming.getAddress().getHostAddress() + " : " + incoming.getPort() + " - " + s);
+                        //Log.i("UDP packet received", incoming.getAddress().getHostAddress() + " : " + incoming.getPort() + " - " + s);
 
                         Command command = new Gson().fromJson(s, Command.class);
 
                         if (command.getName().equals(Command.GET_DATA)) {
                             s = sensorController.getData().toString();
                             DatagramPacket dp = new DatagramPacket(s.getBytes(), s.getBytes().length, incoming.getAddress(), 8001);
-                            Log.i("UDP packet sent", incoming.getAddress().getHostAddress() + " : " + 8001 + " - " + s);
+                            //Log.i("UDP packet sent", incoming.getAddress().getHostAddress() + " : " + 8001 + " - " + s);
                             ds.send(dp);
                         } else if (command.getName().equals(Command.MOVE_UP)) {
                             Log.d("MOVE", "UP");

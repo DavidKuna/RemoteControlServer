@@ -12,6 +12,7 @@ import cz.davidkuna.remotecontrolserver.video.CameraStream;
 
 import android.app.Activity;
 import android.content.SharedPreferences;
+import android.hardware.Camera;
 import android.os.PowerManager;
 import android.preference.PreferenceManager;
 import android.content.Intent;
@@ -23,7 +24,10 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.ImageView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
@@ -33,6 +37,9 @@ import com.google.zxing.WriterException;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
 import com.journeyapps.barcodescanner.BarcodeEncoder;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends Activity implements SendClientMessageListener, SocketServerEventListener, OnClickListener {
 	
@@ -44,20 +51,23 @@ public class MainActivity extends Activity implements SendClientMessageListener,
 
     private CameraStream cameraStream = null;
 	private ToggleButton toggleSocketServer;
+    private SharedPreferences prefs;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
 		setContentView(R.layout.activity_main);
+        prefs = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
 
 		TextView tvLocalIP = (TextView) findViewById(R.id.tvLocalIP);
 		tvLocalIP.setText(Network.getLocalIpAddress());
 
+        initCameraSizes(0);
+
 		toggleSocketServer = (ToggleButton)findViewById(R.id.toggleSocketServer);
 		toggleSocketServer.setOnClickListener(this);
 
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
         PowerManager powerManager =	(PowerManager) getSystemService(POWER_SERVICE);
         SurfaceHolder mPreviewDisplay = ((SurfaceView) findViewById(R.id.camera)).getHolder();
         cameraStream = new CameraStream(powerManager, prefs, mPreviewDisplay);
@@ -203,9 +213,40 @@ public class MainActivity extends Activity implements SendClientMessageListener,
 
 	public void cameraStreamStart(View v) {
 		Log.d("Camera Stream", "Click");
-
 		cameraStream.start();
 	}
 
+	private void initCameraSizes(int mCameraIndex) {
+
+        Spinner spinner = (Spinner) findViewById(R.id.cameraResolution);
+		final Camera camera = Camera.open(mCameraIndex);
+		final Camera.Parameters params = camera.getParameters();
+		// Check what resolutions are supported by your camera
+		List<Camera.Size> sizes = params.getSupportedPictureSizes();
+
+        ArrayList<String> options = new ArrayList<String>();
+		Camera.Size mSize;
+		for (Camera.Size size : sizes) {
+			options.add(size.width+"x"+size.height);
+		}
+        camera.release();
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(getApplicationContext(), android.R.layout.simple_spinner_item,options);
+        spinner.setAdapter(adapter);
+        spinner.setSelection(Integer.valueOf(prefs.getString(CameraStream.PREF_JPEG_SIZE, "0")));
+
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putString(CameraStream.PREF_JPEG_SIZE, String.valueOf(position));
+                editor.commit();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
+    }
 
 }

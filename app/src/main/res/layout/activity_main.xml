@@ -90,6 +90,21 @@
         android:layout_alignParentTop="true"
         android:id="@+id/frameLayout">
 
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <Spinner
+                android:layout_width="match_parent"
+                android:layout_height="57dp"
+                android:id="@+id/cameraResolution"
+                android:layout_gravity="center"
+                android:layout_marginTop="42dp"
+                android:layout_alignParentTop="true"
+                android:layout_alignParentLeft="true"
+                android:layout_alignParentStart="true" />
+        </RelativeLayout>
+
         <SurfaceView
             android:id="@+id/camera"
             android:layout_width="200dp"
@@ -112,6 +127,7 @@
             android:layout_below="@+id/tvConnectionStatus"
             android:layout_alignLeft="@+id/textView2"
             android:layout_gravity="right|top" />
+
     </FrameLayout>
 
 </RelativeLayout>

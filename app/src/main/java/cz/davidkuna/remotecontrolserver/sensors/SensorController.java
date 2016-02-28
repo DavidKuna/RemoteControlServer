@@ -36,19 +36,9 @@ public class SensorController {
 	}
     
     public void start() {
-    	SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-
-    	if(preferences.getBoolean("accelerometr_enabled", true)) {
-            mAccelerometer.start();
-		}
-    	
-    	if(preferences.getBoolean("gyroscope_enabled", true)) {
-    		mGyroscope.start();
-    	}
-
-        if(preferences.getBoolean("compass_enabled", true)) {
-            mCompass.start();
-        }
+        mAccelerometer.start();
+        mGyroscope.start();
+        mCompass.start();
     }
     
     public void closeControl() {
@@ -82,7 +72,7 @@ public class SensorController {
     private String getLocation() {
         ArrayList<Double> data = new ArrayList<Double>();
         if(!gpsTracker.canGetLocation()){
-            gpsTracker.showSettingsAlert();
+            //gpsTracker.showSettingsAlert();
             data.add(0.0);
             data.add(0.0);
         } else {

@@ -28,7 +28,7 @@ public class Network {
                     if (!inetAddress.isLoopbackAddress())
                     {
                         final String addr = inetAddress.getHostAddress().toUpperCase();
-                        if (InetAddressUtils.isIPv4Address(addr))
+                        if (InetAddressUtils.isIPv4Address(addr) && !isDebugIP(addr))
                         {
                             return addr;
                         }
@@ -39,6 +39,10 @@ public class Network {
             Log.e("IP Address", ex.toString());
         }
         return null;
+    }
+
+    public static boolean isDebugIP(String addr) {
+        return addr.equals("10.0.2.15");
     }
 
 }

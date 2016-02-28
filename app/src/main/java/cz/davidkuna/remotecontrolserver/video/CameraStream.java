@@ -41,7 +41,7 @@ public final class CameraStream implements SurfaceHolder.Callback
     private static final boolean PREF_FLASH_LIGHT_DEF = false;
     private static final String PREF_PORT = "port";
     private static final int PREF_PORT_DEF = 8080;
-    private static final String PREF_JPEG_SIZE = "size";
+    public static final String PREF_JPEG_SIZE = "size";
     private static final String PREF_JPEG_QUALITY = "jpeg_quality";
     private static final int PREF_JPEG_QUALITY_DEF = 40;
     // preview sizes will always have at least one element, so this is safe
@@ -168,7 +168,7 @@ public final class CameraStream implements SurfaceHolder.Callback
         {
             return defValue;
         } // catch
-        catch (final NumberFormatException e)
+        catch (final Exception e)
         {
             return defValue;
         } // catch
