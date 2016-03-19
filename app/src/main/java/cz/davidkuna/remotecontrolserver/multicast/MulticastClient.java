@@ -1,6 +1,4 @@
-package cz.davidkuna.remotecontrolserver.video;
-
-import android.util.Log;
+package cz.davidkuna.remotecontrolserver.multicast;
 
 import java.io.IOException;
 import java.net.InetAddress;

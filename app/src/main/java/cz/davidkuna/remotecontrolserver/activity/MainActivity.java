@@ -4,6 +4,7 @@ import cz.davidkuna.remotecontrolserver.R;
 import cz.davidkuna.remotecontrolserver.helpers.Network;
 import cz.davidkuna.remotecontrolserver.helpers.Settings;
 import cz.davidkuna.remotecontrolserver.sensors.SensorController;
+import cz.davidkuna.remotecontrolserver.sensors.SensorDataStream;
 import cz.davidkuna.remotecontrolserver.socket.SendClientMessageListener;
 import cz.davidkuna.remotecontrolserver.socket.SocketServer;
 import cz.davidkuna.remotecontrolserver.socket.SocketServerEventListener;
@@ -38,6 +39,7 @@ import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
 import com.journeyapps.barcodescanner.BarcodeEncoder;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,9 +47,14 @@ public class MainActivity extends Activity implements SendClientMessageListener,
 	
 	public static final String LOGTAG = "RC_SERVER";
 
+    public final int DEFAULT_COMMAND_LISTENER_PORT = 8000;
+	public final int DEFAULT_SENSOR_STREAM_PORT = 8001;
+    public final int DEFAULT_CAMERA_STREAM_PORT = 8080;
+
 	private UDPServer udpServer = null;
 	private SocketServer socketServer;
 	private SensorController sensorController;
+	private SensorDataStream sensorDataStream;
 
     private CameraStream cameraStream = null;
 	private ToggleButton toggleSocketServer;
@@ -74,7 +81,7 @@ public class MainActivity extends Activity implements SendClientMessageListener,
 
         Settings settings = new Settings();
         settings.setServerAddress(Network.getLocalIpAddress())
-                .setCameraUDPPort(8080);
+                .setCameraUDPPort(DEFAULT_CAMERA_STREAM_PORT);
         Gson gson = new Gson();
 		qrCodeInit(gson.toJson(settings).toString(), 150, 150);
 	}
@@ -121,7 +128,14 @@ public class MainActivity extends Activity implements SendClientMessageListener,
 
 	public void startUDPServer() {
 		udpServer = new UDPServer();
-		udpServer.runUdpServer(sensorController);
+		udpServer.runUdpServer(DEFAULT_COMMAND_LISTENER_PORT, sensorController);
+
+		try {
+			sensorDataStream = new SensorDataStream(DEFAULT_SENSOR_STREAM_PORT, sensorController);
+			sensorDataStream.start();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
     
     public boolean isSocketServerRunning() {
@@ -174,6 +188,7 @@ public class MainActivity extends Activity implements SendClientMessageListener,
 			startUDPServer();
 		} else {
 			udpServer.stopUDPServer();
+			sensorDataStream.stop();
 			disableSensorController();
 		}
 	}

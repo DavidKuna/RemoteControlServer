@@ -20,6 +20,8 @@ import android.util.Log;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
+import cz.davidkuna.remotecontrolserver.multicast.Multicast;
+
 /* package */ final class MJpegUDPStreamer
 {
     private static final String TAG = MJpegUDPStreamer.class.getSimpleName();

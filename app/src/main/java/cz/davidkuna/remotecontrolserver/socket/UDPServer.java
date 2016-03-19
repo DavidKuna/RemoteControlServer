@@ -19,12 +19,13 @@ import cz.davidkuna.remotecontrolserver.sensors.SensorController;
 public class UDPServer {
     private AsyncTask<Void, Void, Void> async;
     private boolean serverActive = true;
-    public static final int SERVERPORT = 8000;
+    private int localPort;
     private static final int MAX_UDP_DATAGRAM_LEN = 4096;
 
     @SuppressLint("NewApi")
-    public void runUdpServer(final SensorController sensorController)
+    public void runUdpServer(final int localPort, final SensorController sensorController)
     {
+        this.localPort = localPort;
         async = new AsyncTask<Void, Void, Void>()
         {
             @Override
@@ -36,7 +37,7 @@ public class UDPServer {
 
                 try
                 {
-                    ds = new DatagramSocket(SERVERPORT);
+                    ds = new DatagramSocket(localPort);
 
                     while(serverActive)
                     {
@@ -52,7 +53,7 @@ public class UDPServer {
                             s = sensorController.getData().toString();
                             DatagramPacket dp = new DatagramPacket(s.getBytes(), s.getBytes().length, incoming.getAddress(), 8001);
                             //Log.i("UDP packet sent", incoming.getAddress().getHostAddress() + " : " + 8001 + " - " + s);
-                            ds.send(dp);
+                            //ds.send(dp);
                         } else if (command.getName().equals(Command.MOVE_UP)) {
                             Log.d("MOVE", "UP");
                         } else if (command.getName().equals(Command.MOVE_DOWN)) {

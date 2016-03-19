@@ -1,6 +1,5 @@
-package cz.davidkuna.remotecontrolserver.video;
+package cz.davidkuna.remotecontrolserver.multicast;
 
-import android.nfc.Tag;
 import android.os.SystemClock;
 import android.util.Log;
 
