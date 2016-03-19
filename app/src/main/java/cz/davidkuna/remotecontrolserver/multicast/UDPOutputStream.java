@@ -1,4 +1,4 @@
-package cz.davidkuna.remotecontrolserver.video;
+package cz.davidkuna.remotecontrolserver.multicast;
 
 /*
 Copyright 2007 Creare Inc.
@@ -38,6 +38,8 @@ limitations under the License.
 */
 
 //package com.rbnb.utility;
+
+import android.util.Log;
 
 import java.io.OutputStream;
 import java.io.IOException;
