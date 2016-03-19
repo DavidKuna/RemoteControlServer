@@ -19,8 +19,8 @@ public class Multicast extends UDPOutputStream {
     public static final int MAX_UDP_DATAGRAM_LEN = 4096;
 
     public final static String REQUEST_JOIN = "join";
-    public static final int MAX_CONNECTION_TIME = 15000; //miliseconds
-    public static final int CONNECTION_CHECK_INTERVAL = 20000; //miliseconds
+    public static final int MAX_CONNECTION_TIME = 10000; //miliseconds
+    public static final int CONNECTION_CHECK_INTERVAL = 1000; //miliseconds
     public final String TAG = "Multicast";
 
     private Thread mWorker = null;

@@ -68,9 +68,8 @@ public class MainActivity extends Activity implements SendClientMessageListener,
 		toggleSocketServer = (ToggleButton)findViewById(R.id.toggleSocketServer);
 		toggleSocketServer.setOnClickListener(this);
 
-        PowerManager powerManager =	(PowerManager) getSystemService(POWER_SERVICE);
         SurfaceHolder mPreviewDisplay = ((SurfaceView) findViewById(R.id.camera)).getHolder();
-        cameraStream = new CameraStream(powerManager, prefs, mPreviewDisplay);
+        cameraStream = new CameraStream(prefs, mPreviewDisplay);
 
         Settings settings = new Settings();
         settings.setServerAddress(Network.getLocalIpAddress())

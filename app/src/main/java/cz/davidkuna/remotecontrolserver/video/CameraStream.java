@@ -58,13 +58,9 @@ public final class CameraStream implements SurfaceHolder.Callback
     private int mJpegQuality = PREF_JPEG_QUALITY_DEF;
     private int mPrevieSizeIndex = PREF_PREVIEW_SIZE_INDEX_DEF;
     private SharedPreferences mPrefs = null;
-    private WakeLock mWakeLock = null;
 
-    private PowerManager powerManager;
-
-    public CameraStream(PowerManager powerManager, SharedPreferences prefs, SurfaceHolder preview)
+    public CameraStream(SharedPreferences prefs, SurfaceHolder preview)
     {
-        this.powerManager = powerManager;
         this.mPrefs = prefs;
 
         mPreviewDisplay = preview;
@@ -72,9 +68,6 @@ public final class CameraStream implements SurfaceHolder.Callback
         mPreviewDisplay.addCallback(this);
 
         updatePrefCacheAndUi();
-
-        mWakeLock = powerManager.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK,
-                WAKE_LOCK_TAG);
     }
 
 
@@ -88,12 +81,10 @@ public final class CameraStream implements SurfaceHolder.Callback
         } // if
         updatePrefCacheAndUi();
         tryStartCameraStreamer();
-        mWakeLock.acquire();
     }
 
       protected void stop()
     {
-        mWakeLock.release();
         mRunning = false;
         if (mPrefs != null)
         {
