@@ -20,9 +20,10 @@ public class DataMessage extends JSONStringer {
     public static final String TYPE_GPS = "gps";
 
     private ArrayList<String[]> data = new ArrayList<String[]>();
+    private long timestamp;
 
     public DataMessage() {
-
+        timestamp = System.currentTimeMillis();
     }
 
     public DataMessage addData(String name, String value) {
@@ -35,18 +36,25 @@ public class DataMessage extends JSONStringer {
     @Override
     public String toString() {
 
+        JSONObject jsonObject = new JSONObject();
         JSONArray jsArray = new JSONArray();
         try {
+            jsonObject.put("timestamp", Long.toString(timestamp));
             for (String[] item : data) {
                 JSONObject jsObject = new JSONObject();
                 jsObject.put("name", item[0]);
                 jsObject.put("value", item[1]);
                 jsArray.put(jsObject);
             }
+            jsonObject.put("sensors", jsArray);
         } catch (JSONException e) {
             e.printStackTrace();
         }
 
         return jsArray.toString();
+    }
+
+    public long getTimestamp() {
+        return timestamp;
     }
 }

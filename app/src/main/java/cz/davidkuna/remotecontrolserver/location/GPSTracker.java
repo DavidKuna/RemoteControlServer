@@ -189,7 +189,8 @@ public class GPSTracker extends Service implements LocationListener {
 
 	@Override
 	public void onLocationChanged(Location arg0) {
-		// TODO Auto-generated method stub
+        Log.d("locationChanged", arg0.getAltitude() + "");
+        location = arg0;
 		
 	}
 

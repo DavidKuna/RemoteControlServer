@@ -17,6 +17,7 @@ import android.hardware.Camera;
 import android.os.PowerManager;
 import android.preference.PreferenceManager;
 import android.content.Intent;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -80,9 +81,16 @@ public class MainActivity extends Activity implements SendClientMessageListener,
 
         Settings settings = new Settings();
         settings.setServerAddress(Network.getLocalIpAddress())
-                .setCameraUDPPort(DEFAULT_CAMERA_STREAM_PORT);
+                .setCameraUDPPort(DEFAULT_CAMERA_STREAM_PORT)
+				.setSensorUDPPort(DEFAULT_SENSOR_STREAM_PORT)
+				.setControlUDPPort(DEFAULT_COMMAND_LISTENER_PORT);
         Gson gson = new Gson();
-		qrCodeInit(gson.toJson(settings).toString(), 150, 150);
+
+		DisplayMetrics metrics = new DisplayMetrics();
+		getWindowManager().getDefaultDisplay().getMetrics(metrics);
+		int qrDimensionSize = (int)(metrics.heightPixels * 0.01 * 40);
+
+		qrCodeInit(gson.toJson(settings).toString(), qrDimensionSize, qrDimensionSize);
 	}
 
 	private void qrCodeInit(String content, int width, int height) {

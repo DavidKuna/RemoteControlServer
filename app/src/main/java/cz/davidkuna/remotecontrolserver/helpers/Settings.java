@@ -8,6 +8,8 @@ public class Settings {
     private String serverAddress;
     private int cameraUDPPort;
     private int sensorUDPPort;
+    private int controlUDPPort;
+    private String relayToken = "";
 
     public String getServerAddress() {
         return serverAddress;
@@ -34,5 +36,21 @@ public class Settings {
     public Settings setSensorUDPPort(int sensorUDPPort) {
         this.sensorUDPPort = sensorUDPPort;
         return this;
+    }
+
+    public int getControlUDPPort() {
+        return controlUDPPort;
+    }
+
+    public void setControlUDPPort(int controlUDPPort) {
+        this.controlUDPPort = controlUDPPort;
+    }
+
+    public String getRelayToken() {
+        return relayToken;
+    }
+
+    public void setRelayToken(String relayToken) {
+        this.relayToken = relayToken;
     }
 }
