@@ -1,6 +1,7 @@
 package cz.davidkuna.remotecontrolserver.multicast;
 
 import java.io.IOException;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
 
 /**
@@ -37,6 +38,10 @@ public class MulticastClient {
 
     public void open() throws IOException {
         outputStream.open(mAddress, mPort);
+    }
+
+    public void open(DatagramSocket socket) throws IOException {
+        outputStream.open(socket, mAddress, mPort);
     }
 
     @Override

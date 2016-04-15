@@ -37,6 +37,7 @@ public class Multicast extends UDPOutputStream implements SocketDatagramListener
 
     private boolean useSTUN = true;
     private String token;
+    private StunConnection stunConnection = null;
 
     private ArrayList<MulticastClient> clients = new ArrayList<MulticastClient>();
 
@@ -139,7 +140,7 @@ public class Multicast extends UDPOutputStream implements SocketDatagramListener
     public void onDatagramReceived(DatagramPacket incoming) {
         byte[] data = incoming.getData();
         String s = new String(data, 0, incoming.getLength());
-
+        Log.d("onDatagramReceived", s);
         if (s.equals(REQUEST_JOIN)) {
             join(new MulticastClient(incoming.getAddress(), incoming.getPort()));
         }
@@ -149,9 +150,9 @@ public class Multicast extends UDPOutputStream implements SocketDatagramListener
         String stunServer = "stun.sipgate.net";
         String relayServer = "http://punkstore.wendy.netdevelo.cz/RemoteControlRelayServer/";
         int port = 10000;
-        StunConnection stun =  new StunConnection(Network.getLocalInetAddress(), stunServer, port, relayServer);
-        stun.setSocketDatagramListener(this);
-        stun.connect(token);
+        stunConnection =  new StunConnection(Network.getLocalInetAddress(), stunServer, port, relayServer);
+        stunConnection.setSocketDatagramListener(this);
+        stunConnection.connect(token);
     }
 
     private void join(MulticastClient client) {
@@ -162,7 +163,11 @@ public class Multicast extends UDPOutputStream implements SocketDatagramListener
             } else {
                 try {
                     client.setLastTime(System.currentTimeMillis());
-                    client.open();
+                    if (useSTUN) {
+                        client.open(stunConnection.getSocket());
+                    } else {
+                        client.open();
+                    }
                     Log.d(TAG, "New connection " + client.getAddress().getHostAddress());
                     clients.add(client);
                 } catch (IOException e) {

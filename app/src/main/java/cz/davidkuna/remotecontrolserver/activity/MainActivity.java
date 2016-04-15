@@ -8,14 +8,12 @@ import cz.davidkuna.remotecontrolserver.sensors.SensorDataStream;
 import cz.davidkuna.remotecontrolserver.socket.SendClientMessageListener;
 import cz.davidkuna.remotecontrolserver.socket.SocketServer;
 import cz.davidkuna.remotecontrolserver.socket.SocketServerEventListener;
-import cz.davidkuna.remotecontrolserver.socket.StunTest;
 import cz.davidkuna.remotecontrolserver.socket.UDPServer;
 import cz.davidkuna.remotecontrolserver.video.CameraStream;
 
 import android.app.Activity;
 import android.content.SharedPreferences;
 import android.hardware.Camera;
-import android.os.PowerManager;
 import android.preference.PreferenceManager;
 import android.content.Intent;
 import android.util.DisplayMetrics;

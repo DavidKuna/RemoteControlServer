@@ -49,6 +49,7 @@ public class StunConnection {
     private Thread heartBeat = null;
     private SocketDatagramListener socketDatagramListener = null;
     private final String HEART_BEAT = "beat";
+    private Relation relation = null;
 
     private boolean serverActive = true;
     private static final int MAX_UDP_DATAGRAM_LEN = 4096;
@@ -73,7 +74,7 @@ public class StunConnection {
                         public void run() {
                             byte[] data = HEART_BEAT.getBytes();
 
-                            while(serverActive && relatedIp != null) {
+                            while(serverActive) {
                                 try {
                                     DatagramPacket send = new DatagramPacket(data, data.length, InetAddress.getByName(relatedIp), relatedPort);
                                     Log.d("HEART BEAT",relatedIp + ":" + relatedPort);
@@ -211,6 +212,7 @@ public class StunConnection {
                             relatedIp = json.getString("ip");
                             relatedPort = json.getInt("port");
                             related = true;
+                            relation.onRelationCreated();
                             return true;
                         }
 
@@ -256,5 +258,17 @@ public class StunConnection {
 
     public void setSocketDatagramListener(SocketDatagramListener listener) {
         socketDatagramListener = listener;
+    }
+
+    public MappedAddress getMappedAddress() {
+        return ma;
+    }
+
+    public DatagramSocket getSocket() {
+        return socket;
+    }
+
+    public void setRelation(Relation relation) {
+        this.relation = relation;
     }
 }
