@@ -51,7 +51,7 @@ public class DataMessage extends JSONStringer {
             e.printStackTrace();
         }
 
-        return jsArray.toString();
+        return jsonObject.toString();
     }
 
     public long getTimestamp() {

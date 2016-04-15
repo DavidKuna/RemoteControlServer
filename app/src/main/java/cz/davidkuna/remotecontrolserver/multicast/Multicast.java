@@ -8,10 +8,14 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.util.ArrayList;
 
+import cz.davidkuna.remotecontrolserver.helpers.Network;
+import cz.davidkuna.remotecontrolserver.socket.SocketDatagramListener;
+import cz.davidkuna.remotecontrolserver.socket.StunConnection;
+
 /**
  * Created by David Kuna on 21.2.16.
  */
-public class Multicast extends UDPOutputStream {
+public class Multicast extends UDPOutputStream implements SocketDatagramListener {
 
     public static final int DEFAULT_BUFFER_SIZE = 1024;
     public static final int DEFAULT_MAX_BUFFER_SIZE = 8192;
@@ -31,6 +35,9 @@ public class Multicast extends UDPOutputStream {
 
     int bufferMax = DEFAULT_MAX_BUFFER_SIZE;
 
+    private boolean useSTUN = true;
+    private String token;
+
     private ArrayList<MulticastClient> clients = new ArrayList<MulticastClient>();
 
     public Multicast(int port, int bufferMax) {
@@ -40,6 +47,16 @@ public class Multicast extends UDPOutputStream {
 
     public Multicast(int port) {
         this.mPort = port;
+    }
+
+    public Multicast(String token, int bufferMax) {
+        this(token);
+        setBufferSize(bufferMax);
+    }
+
+    public Multicast(String token) {
+        this.token = token;
+        useSTUN = true;
     }
 
     public void open()
@@ -56,7 +73,11 @@ public class Multicast extends UDPOutputStream {
             @Override
             public void run()
             {
-                workerRun();
+                if (useSTUN) {
+                    stunWorkerRun();
+                } else {
+                    workerRun();
+                }
             } // run()
         });
         mWorker.start();
@@ -99,12 +120,7 @@ public class Multicast extends UDPOutputStream {
             while(mRunning)
             {
                 ds.receive(incoming);
-                byte[] data = incoming.getData();
-                String s = new String(data, 0, incoming.getLength());
-
-                if (s.equals(REQUEST_JOIN)) {
-                    join(new MulticastClient(incoming.getAddress(), mPort));
-                }
+                onDatagramReceived(incoming);
             }
         }
         catch (Exception e)
@@ -118,6 +134,24 @@ public class Multicast extends UDPOutputStream {
                 ds.close();
             }
         }
+    }
+
+    public void onDatagramReceived(DatagramPacket incoming) {
+        byte[] data = incoming.getData();
+        String s = new String(data, 0, incoming.getLength());
+
+        if (s.equals(REQUEST_JOIN)) {
+            join(new MulticastClient(incoming.getAddress(), incoming.getPort()));
+        }
+    }
+
+    private void stunWorkerRun() {
+        String stunServer = "stun.sipgate.net";
+        String relayServer = "http://punkstore.wendy.netdevelo.cz/RemoteControlRelayServer/";
+        int port = 10000;
+        StunConnection stun =  new StunConnection(Network.getLocalInetAddress(), stunServer, port, relayServer);
+        stun.setSocketDatagramListener(this);
+        stun.connect(token);
     }
 
     private void join(MulticastClient client) {

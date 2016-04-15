@@ -8,6 +8,7 @@ import cz.davidkuna.remotecontrolserver.sensors.SensorDataStream;
 import cz.davidkuna.remotecontrolserver.socket.SendClientMessageListener;
 import cz.davidkuna.remotecontrolserver.socket.SocketServer;
 import cz.davidkuna.remotecontrolserver.socket.SocketServerEventListener;
+import cz.davidkuna.remotecontrolserver.socket.StunTest;
 import cz.davidkuna.remotecontrolserver.socket.UDPServer;
 import cz.davidkuna.remotecontrolserver.video.CameraStream;
 
@@ -79,6 +80,8 @@ public class MainActivity extends Activity implements SendClientMessageListener,
         SurfaceHolder mPreviewDisplay = ((SurfaceView) findViewById(R.id.camera)).getHolder();
         cameraStream = new CameraStream(prefs, mPreviewDisplay);
 
+		//new StunTest();
+
         Settings settings = new Settings();
         settings.setServerAddress(Network.getLocalIpAddress())
                 .setCameraUDPPort(DEFAULT_CAMERA_STREAM_PORT)
@@ -138,7 +141,8 @@ public class MainActivity extends Activity implements SendClientMessageListener,
 		udpServer.runUdpServer(DEFAULT_COMMAND_LISTENER_PORT, sensorController);
 
 		try {
-			sensorDataStream = new SensorDataStream(DEFAULT_SENSOR_STREAM_PORT, sensorController);
+			//sensorDataStream = new SensorDataStream(DEFAULT_SENSOR_STREAM_PORT, sensorController);
+			sensorDataStream = new SensorDataStream("TOKEN_SENSOR", sensorController);
 			sensorDataStream.start();
 		} catch (IOException e) {
 			e.printStackTrace();

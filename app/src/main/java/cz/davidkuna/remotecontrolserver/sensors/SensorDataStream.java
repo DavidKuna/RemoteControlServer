@@ -22,8 +22,17 @@ public class SensorDataStream {
     private Thread mWorker = null;
     private SensorController sensorController;
 
+    private boolean useSTUN = false;
+    private String token;
+
     public SensorDataStream(int port, SensorController sensorController) throws IOException {
         mPort = port;
+        this.sensorController = sensorController;
+    }
+
+    public SensorDataStream(String token, SensorController sensorController) throws IOException {
+        this.token = token;
+        useSTUN = true;
         this.sensorController = sensorController;
     }
 
@@ -76,7 +85,11 @@ public class SensorDataStream {
         DataOutputStream stream = null;
         Multicast multicast = null;
         try {
-            multicast = new Multicast(mPort, BUFFER_SIZE);
+            if (useSTUN) {
+                multicast = new Multicast(token, BUFFER_SIZE);
+            } else {
+                multicast = new Multicast(mPort, BUFFER_SIZE);
+            }
             multicast.open();
             stream = new DataOutputStream(multicast);
 
