@@ -4,9 +4,11 @@ import android.util.Log;
 
 import org.apache.http.conn.util.InetAddressUtils;
 
+import java.math.BigInteger;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.security.SecureRandom;
 import java.util.Enumeration;
 
 /**
@@ -14,6 +16,7 @@ import java.util.Enumeration;
  */
 public class Network {
 
+    private static SecureRandom random = new SecureRandom();
 
     public static InetAddress getLocalInetAddress() {
         String ipv4;
@@ -75,4 +78,7 @@ public class Network {
         return addr.equals("10.0.2.15");
     }
 
+    public static String nextSessionId() {
+        return new BigInteger(130, random).toString(32);
+    }
 }

@@ -6,7 +6,10 @@ import android.util.Log;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
+import cz.davidkuna.remotecontrolserver.helpers.Network;
+import cz.davidkuna.remotecontrolserver.helpers.Settings;
 import cz.davidkuna.remotecontrolserver.multicast.Multicast;
+import cz.davidkuna.remotecontrolserver.socket.StunConnection;
 
 /**
  * Created by David Kuna on 13.3.16.
@@ -17,23 +20,24 @@ public class SensorDataStream {
     private final int BUFFER_SIZE = 2000;
     private final int INTERVAL = 100; // miliseconds
 
-    private int mPort;
     private volatile boolean mRunning = false;
     private Thread mWorker = null;
     private SensorController sensorController;
+    Multicast multicast = null;
 
-    private boolean useSTUN = false;
-    private String token;
-
-    public SensorDataStream(int port, SensorController sensorController) throws IOException {
-        mPort = port;
+    public SensorDataStream(Settings settings, SensorController sensorController) throws IOException {
+        if(settings.isUseStun()) {
+            StunConnection connection = new StunConnection(Network.getLocalInetAddress(),
+                    settings.getStunServer(),
+                    settings.getStunPort(),
+                    settings.getRelayServer(),
+                    settings.getSensorToken());
+            multicast = new Multicast(connection, BUFFER_SIZE);
+        } else {
+            multicast = new Multicast(settings.getSensorUDPPort(), BUFFER_SIZE);
+        }
         this.sensorController = sensorController;
-    }
 
-    public SensorDataStream(String token, SensorController sensorController) throws IOException {
-        this.token = token;
-        useSTUN = true;
-        this.sensorController = sensorController;
     }
 
     public void start()
@@ -83,13 +87,8 @@ public class SensorDataStream {
 
     private void acceptAndStream() throws IOException {
         DataOutputStream stream = null;
-        Multicast multicast = null;
+
         try {
-            if (useSTUN) {
-                multicast = new Multicast(token, BUFFER_SIZE);
-            } else {
-                multicast = new Multicast(mPort, BUFFER_SIZE);
-            }
             multicast.open();
             stream = new DataOutputStream(multicast);
 

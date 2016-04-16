@@ -50,19 +50,21 @@ public class StunConnection {
     private SocketDatagramListener socketDatagramListener = null;
     private final String HEART_BEAT = "beat";
     private Relation relation = null;
+    private String token;
 
     private boolean serverActive = true;
     private static final int MAX_UDP_DATAGRAM_LEN = 4096;
 
-    public StunConnection(InetAddress iaddress , String stunServer, int port, String relayServer) {
+    public StunConnection(InetAddress iaddress , String stunServer, int port, String relayServer, String token) {
 
         this.iaddress = iaddress;
         this.stunServer = stunServer;
         this.port = port;
         this.relayServer = relayServer;
+        this.token = token;
     }
 
-    public boolean connect(String token) {
+    public boolean connect() {
         while (true) {
             try {
                 if (loadMappedAddress()) {

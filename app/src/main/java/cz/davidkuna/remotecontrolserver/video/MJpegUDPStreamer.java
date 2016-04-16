@@ -20,7 +20,10 @@ import android.util.Log;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
+import cz.davidkuna.remotecontrolserver.helpers.Network;
+import cz.davidkuna.remotecontrolserver.helpers.Settings;
 import cz.davidkuna.remotecontrolserver.multicast.Multicast;
+import cz.davidkuna.remotecontrolserver.socket.StunConnection;
 
 /* package */ final class MJpegUDPStreamer
 {
@@ -43,8 +46,6 @@ import cz.davidkuna.remotecontrolserver.multicast.Multicast;
                     + "boundary=" + BOUNDARY + "\r\n"
                     + BOUNDARY_LINES;
 
-    private final int mPort;
-
     private boolean mNewJpeg = false;
     private boolean mStreamingBufferA = true;
     private final byte[] mBufferA;
@@ -57,14 +58,35 @@ import cz.davidkuna.remotecontrolserver.multicast.Multicast;
 
     private Thread mWorker = null;
     private volatile boolean mRunning = false;
+    private Multicast multicast = null;
 
     /* package */ MJpegUDPStreamer(final int port, final int bufferSize)
     {
         super();
-        mPort = port;
         mBufferA = new byte[bufferSize];
         mBufferB = new byte[bufferSize];
-    } // constructor(int, int)
+        multicast = new Multicast(port, mBufferA.length);
+    }
+
+    /* package */ MJpegUDPStreamer(Settings settings, final int bufferSize)
+    {
+        super();
+        mBufferA = new byte[bufferSize];
+        mBufferB = new byte[bufferSize];
+
+        if (settings.isUseStun()) {
+            StunConnection connection = new StunConnection(Network.getLocalInetAddress(),
+                    settings.getStunServer(),
+                    settings.getStunPort(),
+                    settings.getRelayServer(),
+                    settings.getCameraToken());
+            multicast = new Multicast(connection, mBufferA.length);
+
+        } else {
+            multicast = new Multicast(settings.getCameraUDPPort(), mBufferA.length);
+        }
+
+    }
 
     /* package */ void start()
     {
@@ -137,9 +159,8 @@ import cz.davidkuna.remotecontrolserver.multicast.Multicast;
     private void acceptAndStream() throws IOException
     {
         DataOutputStream stream = null;
-        Multicast multicast = null;
+
         try {
-            multicast = new Multicast(mPort, mBufferA.length);
             multicast.open();
             stream = new DataOutputStream(multicast);
             stream.writeBytes(HTTP_HEADER);

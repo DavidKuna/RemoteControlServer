@@ -27,6 +27,9 @@ import org.apache.http.conn.util.InetAddressUtils;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.util.Enumeration;
+import java.util.Set;
+
+import cz.davidkuna.remotecontrolserver.helpers.Settings;
 
 
 public final class CameraStream implements SurfaceHolder.Callback
@@ -39,8 +42,6 @@ public final class CameraStream implements SurfaceHolder.Callback
     private static final int PREF_CAMERA_INDEX_DEF = 0;
     private static final String PREF_FLASH_LIGHT = "flash_light";
     private static final boolean PREF_FLASH_LIGHT_DEF = false;
-    private static final String PREF_PORT = "port";
-    private static final int PREF_PORT_DEF = 8080;
     public static final String PREF_JPEG_SIZE = "size";
     private static final String PREF_JPEG_QUALITY = "jpeg_quality";
     private static final int PREF_JPEG_QUALITY_DEF = 40;
@@ -54,14 +55,15 @@ public final class CameraStream implements SurfaceHolder.Callback
 
     private int mCameraIndex = PREF_CAMERA_INDEX_DEF;
     private boolean mUseFlashLight = PREF_FLASH_LIGHT_DEF;
-    private int mPort = PREF_PORT_DEF;
     private int mJpegQuality = PREF_JPEG_QUALITY_DEF;
     private int mPrevieSizeIndex = PREF_PREVIEW_SIZE_INDEX_DEF;
     private SharedPreferences mPrefs = null;
+    private Settings settings = null;
 
-    public CameraStream(SharedPreferences prefs, SurfaceHolder preview)
+    public CameraStream(SharedPreferences prefs, Settings settings, SurfaceHolder preview)
     {
         this.mPrefs = prefs;
+        this.settings = settings;
 
         mPreviewDisplay = preview;
         mPreviewDisplay.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
@@ -118,7 +120,7 @@ public final class CameraStream implements SurfaceHolder.Callback
     {
         if (mRunning && mPreviewDisplayCreated && mPrefs != null)
         {
-            mCameraStreamer = new CameraStreamer(mCameraIndex, mUseFlashLight, mPort,
+            mCameraStreamer = new CameraStreamer(mCameraIndex, mUseFlashLight, settings,
                     mPrevieSizeIndex, mJpegQuality, mPreviewDisplay);
             mCameraStreamer.start();
         }
@@ -184,18 +186,6 @@ public final class CameraStream implements SurfaceHolder.Callback
         {
             mUseFlashLight = false;
         } // else
-
-        // XXX: This validation should really be in the preferences activity.
-        mPort = getPrefInt(PREF_PORT, PREF_PORT_DEF);
-        // The port must be in the range [1024 65535]
-        if (mPort < 1024)
-        {
-            mPort = 1024;
-        } // if
-        else if (mPort > 65535)
-        {
-            mPort = 65535;
-        } // else if
 
         mPrevieSizeIndex = getPrefInt(PREF_JPEG_SIZE, PREF_PREVIEW_SIZE_INDEX_DEF);
         mJpegQuality = getPrefInt(PREF_JPEG_QUALITY, PREF_JPEG_QUALITY_DEF);

@@ -35,8 +35,6 @@ public class Multicast extends UDPOutputStream implements SocketDatagramListener
 
     int bufferMax = DEFAULT_MAX_BUFFER_SIZE;
 
-    private boolean useSTUN = true;
-    private String token;
     private StunConnection stunConnection = null;
 
     private ArrayList<MulticastClient> clients = new ArrayList<MulticastClient>();
@@ -50,14 +48,9 @@ public class Multicast extends UDPOutputStream implements SocketDatagramListener
         this.mPort = port;
     }
 
-    public Multicast(String token, int bufferMax) {
-        this(token);
+    public Multicast(StunConnection connection, int bufferMax) {
+        stunConnection = connection;
         setBufferSize(bufferMax);
-    }
-
-    public Multicast(String token) {
-        this.token = token;
-        useSTUN = true;
     }
 
     public void open()
@@ -74,7 +67,7 @@ public class Multicast extends UDPOutputStream implements SocketDatagramListener
             @Override
             public void run()
             {
-                if (useSTUN) {
+                if (stunConnection != null) {
                     stunWorkerRun();
                 } else {
                     workerRun();
@@ -147,12 +140,8 @@ public class Multicast extends UDPOutputStream implements SocketDatagramListener
     }
 
     private void stunWorkerRun() {
-        String stunServer = "stun.sipgate.net";
-        String relayServer = "http://punkstore.wendy.netdevelo.cz/RemoteControlRelayServer/";
-        int port = 10000;
-        stunConnection =  new StunConnection(Network.getLocalInetAddress(), stunServer, port, relayServer);
         stunConnection.setSocketDatagramListener(this);
-        stunConnection.connect(token);
+        stunConnection.connect();
     }
 
     private void join(MulticastClient client) {
@@ -163,12 +152,12 @@ public class Multicast extends UDPOutputStream implements SocketDatagramListener
             } else {
                 try {
                     client.setLastTime(System.currentTimeMillis());
-                    if (useSTUN) {
+                    if (stunConnection != null) {
                         client.open(stunConnection.getSocket());
                     } else {
                         client.open();
                     }
-                    Log.d(TAG, "New connection " + client.getAddress().getHostAddress());
+                    Log.d(TAG, "New connection " + client.getAddress().getHostAddress() + ":" + client.getPort());
                     clients.add(client);
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -183,13 +172,14 @@ public class Multicast extends UDPOutputStream implements SocketDatagramListener
             synchronized (clients) {
                 for (MulticastClient client : clients) {
                     if ((client.getLastTime() + MAX_CONNECTION_TIME) < System.currentTimeMillis()) {
+                        Log.d("CLEANER", client.getLastTime() + " " + MAX_CONNECTION_TIME + (client.getLastTime() + MAX_CONNECTION_TIME) + "<" + System.currentTimeMillis());
                         try {
                             client.getOutputStream().close();
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
                         clients.remove(client);
-                        Log.d(TAG, "Client disconected " + client.getAddress().getHostAddress());
+                        Log.d(TAG, "Client disconected " + client.getAddress().getHostAddress() + ":" + client.getPort());
                     }
                 }
             }
