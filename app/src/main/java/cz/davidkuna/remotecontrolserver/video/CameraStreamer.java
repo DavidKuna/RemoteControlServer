@@ -27,12 +27,11 @@ import android.os.Process;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.SurfaceHolder;
-import android.widget.Toast;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.List;
+
+import cz.davidkuna.remotecontrolserver.helpers.Settings;
 
 /* package */ final class CameraStreamer extends Object
 {
@@ -48,7 +47,7 @@ import java.util.List;
 
     private final int mCameraIndex;
     private final boolean mUseFlashLight;
-    private final int mPort;
+    private final Settings settings;
     private final int mPreviewSizeIndex;
     private final int mJpegQuality;
     private final SurfaceHolder mPreviewDisplay;
@@ -69,7 +68,7 @@ import java.util.List;
     private long mNumFrames = 0L;
     private long mLastTimestamp = Long.MIN_VALUE;
 
-    /* package */ CameraStreamer(final int cameraIndex, final boolean useFlashLight, final int port,
+    /* package */ CameraStreamer(final int cameraIndex, final boolean useFlashLight, Settings settings,
                                  final int previewSizeIndex, final int jpegQuality, final SurfaceHolder previewDisplay)
     {
         super();
@@ -81,11 +80,11 @@ import java.util.List;
 
         mCameraIndex = cameraIndex;
         mUseFlashLight = useFlashLight;
-        mPort = port;
+        this.settings = settings;
         mPreviewSizeIndex = previewSizeIndex;
         mJpegQuality = jpegQuality;
         mPreviewDisplay = previewDisplay;
-    } // constructor(SurfaceHolder)
+    }
 
     private final class WorkHandler extends Handler
     {
@@ -237,7 +236,7 @@ import java.util.List;
         // the uncompressed image.
         mJpegOutputStream = new MemoryOutputStream(mPreviewBufferSize);
 
-        final MJpegUDPStreamer streamer = new MJpegUDPStreamer(mPort, mPreviewBufferSize);
+        final MJpegUDPStreamer streamer = new MJpegUDPStreamer(settings, mPreviewBufferSize);
         streamer.start();
 
         synchronized (mLock)

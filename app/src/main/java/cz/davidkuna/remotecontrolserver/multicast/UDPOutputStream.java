@@ -224,6 +224,14 @@ public class UDPOutputStream extends OutputStream {
         port = portI;
     }
 
+    public void open(DatagramSocket socket, InetAddress address, int portI)
+            throws SocketException, IOException {
+
+        dsock = socket;
+        iAdd = address;
+        port = portI;
+    }
+
     /*
       *****************************************************************
       ***                ***

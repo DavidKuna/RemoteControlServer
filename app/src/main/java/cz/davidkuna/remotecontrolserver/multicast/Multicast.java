@@ -8,10 +8,14 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.util.ArrayList;
 
+import cz.davidkuna.remotecontrolserver.helpers.Network;
+import cz.davidkuna.remotecontrolserver.socket.SocketDatagramListener;
+import cz.davidkuna.remotecontrolserver.socket.StunConnection;
+
 /**
  * Created by David Kuna on 21.2.16.
  */
-public class Multicast extends UDPOutputStream {
+public class Multicast extends UDPOutputStream implements SocketDatagramListener {
 
     public static final int DEFAULT_BUFFER_SIZE = 1024;
     public static final int DEFAULT_MAX_BUFFER_SIZE = 8192;
@@ -31,6 +35,8 @@ public class Multicast extends UDPOutputStream {
 
     int bufferMax = DEFAULT_MAX_BUFFER_SIZE;
 
+    private StunConnection stunConnection = null;
+
     private ArrayList<MulticastClient> clients = new ArrayList<MulticastClient>();
 
     public Multicast(int port, int bufferMax) {
@@ -40,6 +46,11 @@ public class Multicast extends UDPOutputStream {
 
     public Multicast(int port) {
         this.mPort = port;
+    }
+
+    public Multicast(StunConnection connection, int bufferMax) {
+        stunConnection = connection;
+        setBufferSize(bufferMax);
     }
 
     public void open()
@@ -56,7 +67,11 @@ public class Multicast extends UDPOutputStream {
             @Override
             public void run()
             {
-                workerRun();
+                if (stunConnection != null) {
+                    stunWorkerRun();
+                } else {
+                    workerRun();
+                }
             } // run()
         });
         mWorker.start();
@@ -80,7 +95,9 @@ public class Multicast extends UDPOutputStream {
         }
 
         mRunning = false;
-        ds.close();
+        if (ds != null) {
+            ds.close();
+        }
         mWorker.interrupt();
         mCleaner.interrupt();
 
@@ -99,12 +116,7 @@ public class Multicast extends UDPOutputStream {
             while(mRunning)
             {
                 ds.receive(incoming);
-                byte[] data = incoming.getData();
-                String s = new String(data, 0, incoming.getLength());
-
-                if (s.equals(REQUEST_JOIN)) {
-                    join(new MulticastClient(incoming.getAddress(), mPort));
-                }
+                onDatagramReceived(incoming);
             }
         }
         catch (Exception e)
@@ -120,6 +132,20 @@ public class Multicast extends UDPOutputStream {
         }
     }
 
+    public void onDatagramReceived(DatagramPacket incoming) {
+        byte[] data = incoming.getData();
+        String s = new String(data, 0, incoming.getLength());
+        Log.d("onDatagramReceived", s);
+        if (s.equals(REQUEST_JOIN)) {
+            join(new MulticastClient(incoming.getAddress(), incoming.getPort()));
+        }
+    }
+
+    private void stunWorkerRun() {
+        stunConnection.setSocketDatagramListener(this);
+        stunConnection.connect();
+    }
+
     private void join(MulticastClient client) {
         int index;
         synchronized(clients) {
@@ -128,8 +154,12 @@ public class Multicast extends UDPOutputStream {
             } else {
                 try {
                     client.setLastTime(System.currentTimeMillis());
-                    client.open();
-                    Log.d(TAG, "New connection " + client.getAddress().getHostAddress());
+                    if (stunConnection != null) {
+                        client.open(stunConnection.getSocket());
+                    } else {
+                        client.open();
+                    }
+                    Log.d(TAG, "New connection " + client.getAddress().getHostAddress() + ":" + client.getPort());
                     clients.add(client);
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -144,13 +174,14 @@ public class Multicast extends UDPOutputStream {
             synchronized (clients) {
                 for (MulticastClient client : clients) {
                     if ((client.getLastTime() + MAX_CONNECTION_TIME) < System.currentTimeMillis()) {
+                        Log.d("CLEANER", client.getLastTime() + " " + MAX_CONNECTION_TIME + (client.getLastTime() + MAX_CONNECTION_TIME) + "<" + System.currentTimeMillis());
                         try {
                             client.getOutputStream().close();
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
                         clients.remove(client);
-                        Log.d(TAG, "Client disconected " + client.getAddress().getHostAddress());
+                        Log.d(TAG, "Client disconected " + client.getAddress().getHostAddress() + ":" + client.getPort());
                     }
                 }
             }
@@ -162,6 +193,7 @@ public class Multicast extends UDPOutputStream {
         synchronized(clients) {
             for (MulticastClient client : clients) {
                 client.getOutputStream().close();
+                clients.remove(client);
             }
         }
         Log.d(TAG, "CLOSE");

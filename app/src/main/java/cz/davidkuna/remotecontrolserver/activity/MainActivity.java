@@ -5,16 +5,12 @@ import cz.davidkuna.remotecontrolserver.helpers.Network;
 import cz.davidkuna.remotecontrolserver.helpers.Settings;
 import cz.davidkuna.remotecontrolserver.sensors.SensorController;
 import cz.davidkuna.remotecontrolserver.sensors.SensorDataStream;
-import cz.davidkuna.remotecontrolserver.socket.SendClientMessageListener;
-import cz.davidkuna.remotecontrolserver.socket.SocketServer;
-import cz.davidkuna.remotecontrolserver.socket.SocketServerEventListener;
-import cz.davidkuna.remotecontrolserver.socket.UDPServer;
+import cz.davidkuna.remotecontrolserver.socket.ControlCommandListener;
 import cz.davidkuna.remotecontrolserver.video.CameraStream;
 
 import android.app.Activity;
 import android.content.SharedPreferences;
 import android.hardware.Camera;
-import android.os.PowerManager;
 import android.preference.PreferenceManager;
 import android.content.Intent;
 import android.util.DisplayMetrics;
@@ -44,29 +40,30 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends Activity implements SendClientMessageListener, SocketServerEventListener, OnClickListener {
+public class MainActivity extends Activity implements OnClickListener {
 	
 	public static final String LOGTAG = "RC_SERVER";
 
     public final int DEFAULT_COMMAND_LISTENER_PORT = 8000;
 	public final int DEFAULT_SENSOR_STREAM_PORT = 8001;
     public final int DEFAULT_CAMERA_STREAM_PORT = 8080;
+	public final int DEFAULT_STUN_SERVER_PORT = 10000;
 
-	private UDPServer udpServer = null;
-	private SocketServer socketServer;
+	private ControlCommandListener controlCommandListener = null;
 	private SensorController sensorController;
 	private SensorDataStream sensorDataStream;
 
     private CameraStream cameraStream = null;
 	private ToggleButton toggleSocketServer;
     private SharedPreferences prefs;
+	private Settings settings = new Settings();
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
 		setContentView(R.layout.activity_main);
-        prefs = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
+        prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
 		TextView tvLocalIP = (TextView) findViewById(R.id.tvLocalIP);
 		tvLocalIP.setText(Network.getLocalIpAddress());
@@ -77,26 +74,46 @@ public class MainActivity extends Activity implements SendClientMessageListener,
 		toggleSocketServer.setOnClickListener(this);
 
         SurfaceHolder mPreviewDisplay = ((SurfaceView) findViewById(R.id.camera)).getHolder();
-        cameraStream = new CameraStream(prefs, mPreviewDisplay);
-
-        Settings settings = new Settings();
-        settings.setServerAddress(Network.getLocalIpAddress())
-                .setCameraUDPPort(DEFAULT_CAMERA_STREAM_PORT)
-				.setSensorUDPPort(DEFAULT_SENSOR_STREAM_PORT)
-				.setControlUDPPort(DEFAULT_COMMAND_LISTENER_PORT);
-        Gson gson = new Gson();
-
-		DisplayMetrics metrics = new DisplayMetrics();
-		getWindowManager().getDefaultDisplay().getMetrics(metrics);
-		int qrDimensionSize = (int)(metrics.heightPixels * 0.01 * 40);
-
-		qrCodeInit(gson.toJson(settings).toString(), qrDimensionSize, qrDimensionSize);
+        cameraStream = new CameraStream(prefs, settings, mPreviewDisplay);
 	}
 
-	private void qrCodeInit(String content, int width, int height) {
+	@Override
+	protected void onResume() {
+		super.onResume();
+		loadSettings();
+		if (settings.isUseStun()) {
+			loadRelayTokens();
+		}
+
+		qrCodeInit();
+	}
+
+	private void loadSettings() {
+		settings.setServerAddress(Network.getLocalIpAddress())
+				.setCameraUDPPort(DEFAULT_CAMERA_STREAM_PORT)
+				.setSensorUDPPort(DEFAULT_SENSOR_STREAM_PORT)
+				.setControlUDPPort(DEFAULT_COMMAND_LISTENER_PORT)
+				.setStunServer(prefs.getString(Preferences.PREF_STUN_SERVER, ""))
+				.setStunPort(prefs.getInt(Preferences.PREF_STUN_PORT, DEFAULT_STUN_SERVER_PORT))
+				.setRelayServer(prefs.getString(Preferences.PREF_RELAY_SERVER, ""))
+				.setUseStun(prefs.getBoolean(Preferences.PREF_USE_STUN, false));
+	}
+
+	private void loadRelayTokens() {
+		settings.setCameraToken(Network.nextSessionId())
+				.setControlToken(Network.nextSessionId())
+				.setSensorToken(Network.nextSessionId());
+	}
+
+	private void qrCodeInit() {
+		DisplayMetrics metrics = new DisplayMetrics();
+		getWindowManager().getDefaultDisplay().getMetrics(metrics);
+		int qrDimensionSize = (int)(metrics.heightPixels * 0.01 * 50);
+		Gson gson = new Gson();
+		String content = gson.toJson(settings).toString();
 		try {
             ImageView imageView = (ImageView) findViewById(R.id.qrCode);
-			BitMatrix bitMatrix = new QRCodeWriter().encode(content, BarcodeFormat.QR_CODE, width, height);
+			BitMatrix bitMatrix = new QRCodeWriter().encode(content, BarcodeFormat.QR_CODE, qrDimensionSize, qrDimensionSize);
 			BarcodeEncoder barcodeEncoder = new BarcodeEncoder();
 
 			imageView.setImageBitmap(barcodeEncoder.createBitmap(bitMatrix));
@@ -104,54 +121,26 @@ public class MainActivity extends Activity implements SendClientMessageListener,
 			e.printStackTrace();
 		}
 	}
-
-	@Override
-	protected void onStop() {
-		super.onStop();
-		if(socketServer != null) {
-			socketServer.close();
-		}		
-	}
     
     public void enableSensorController() {
 		sensorController = new SensorController(getApplicationContext());
-		sensorController.setSendClientMessageListener(this);
 		sensorController.start();
     }
     
     public void disableSensorController() {
     	sensorController.closeControl();
     }
-    
-    public void startSocketServer() {
-    	if (socketServer == null) {
-    		socketServer = new SocketServer();
-    		onSocketServerEvent(SocketServer.EVENT_START);
-    		socketServer.setSocketServerEventListener(this);
-		} else if (socketServer.isClosed()) {
-			socketServer.start();
-		}
-    }
 
 	public void startUDPServer() {
-		udpServer = new UDPServer();
-		udpServer.runUdpServer(DEFAULT_COMMAND_LISTENER_PORT, sensorController);
-
 		try {
-			sensorDataStream = new SensorDataStream(DEFAULT_SENSOR_STREAM_PORT, sensorController);
+			controlCommandListener = new ControlCommandListener(settings);
+			controlCommandListener.open();
+			sensorDataStream = new SensorDataStream(settings, sensorController);
 			sensorDataStream.start();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
-    
-    public boolean isSocketServerRunning() {
-    	if (socketServer == null || socketServer.isClosed()) {
-    		return false;
-		} else {
-			return true;
-		}
-    }
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
@@ -176,25 +165,16 @@ public class MainActivity extends Activity implements SendClientMessageListener,
 	@Override
 	public void onClick(View view) {
 		if (view.getId() == R.id.toggleSocketServer) {
-			//toggleSocketServer();
 			toggleUDPServer();
 		}
 	}
 
-	private void toggleSocketServer() {
-		if (!isSocketServerRunning()) {
-			startSocketServer();
-		} else {
-			socketServer.close();
-		}
-	}
-
 	private void toggleUDPServer() {
-		if (!isSocketServerRunning()) {
+		if (true) {
 			enableSensorController();
 			startUDPServer();
 		} else {
-			udpServer.stopUDPServer();
+			controlCommandListener.close();
 			sensorDataStream.stop();
 			disableSensorController();
 		}
@@ -208,34 +188,13 @@ public class MainActivity extends Activity implements SendClientMessageListener,
 		}
 	}
 
-	@Override
-	public void onSendClientMessage(String message) {
-		if(socketServer != null) {
-			socketServer.sendMessage(message);
-		}
-	}
-
-	@Override
-	public void onSocketServerEvent(final int event) {
-		runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if (event == SocketServer.EVENT_START) {
-                    Log.d(LOGTAG, getString(R.string.start_server));
-                } else if (event == SocketServer.EVENT_STOP) {
-                    Log.d(LOGTAG, getString(R.string.stoped));
-                } else if (event == SocketServer.EVENT_CLIENT_CONNECT) {
-                    Log.d(LOGTAG, getString(R.string.connection_status));
-                } else if (event == SocketServer.EVENT_CLIENT_DISCONNECT) {
-                    Log.d(LOGTAG, getString(R.string.disconnected));
-                }
-            }
-        });
-	}
-
 	public void cameraStreamStart(View v) {
 		Log.d("Camera Stream", "Click");
-		cameraStream.start();
+		if (cameraStream.isRunning()) {
+			cameraStream.stop();
+		} else {
+			cameraStream.start();
+		}
 	}
 
 	private void initCameraSizes(int mCameraIndex) {

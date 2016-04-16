@@ -74,7 +74,7 @@
                 android:id="@+id/qrCode"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="50dp"
+                android:layout_marginTop="20dp"
                 android:layout_below="@+id/tvLocalIP"
                 android:layout_gravity="left|bottom"/>
         </FrameLayout>

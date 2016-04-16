@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<preference-headers
-        xmlns:android="http://schemas.android.com/apk/res/android">
-
-    <header android:fragment="cz.davidkuna.remotecontrolserver.activity.Preferences$SensorsPreferencesFragment"
-            android:icon="@drawable/ic_launcher"
-            android:title="@string/sensors_settings"
-            android:summary="@string/sensors_configuration" />
-</preference-headers>

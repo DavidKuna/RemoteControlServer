@@ -17,17 +17,14 @@ import java.util.ArrayList;
 
 public class SensorController {
 
-    private static Context context;
 	private final SensorManager mSensorManager;
     private Accelerometer mAccelerometer;
     private Gyroscope mGyroscope;
     private Compass mCompass;
-    private SendClientMessageListener sendListener;
 
     private GPSTracker gpsTracker = null;
 	
 	public SensorController(Context context) {
-		SensorController.context = context;	
 		mSensorManager = (SensorManager)context.getApplicationContext().getSystemService(Context.SENSOR_SERVICE);
         mGyroscope = new Gyroscope(mSensorManager);
         mAccelerometer = new Accelerometer(mSensorManager);
@@ -47,19 +44,6 @@ public class SensorController {
         mAccelerometer.stop();
         mCompass.stop();
     }
-
-	
-	private void sendMessage(String message) {
-		if(sendListener != null){
-			//sendListener.onSendClientMessage(message);
-		} else {
-			Log.d(MainActivity.LOGTAG, "sendListener is not set");
-		}
-	}
-	
-	public void setSendClientMessageListener(SendClientMessageListener eventListener) {
-		sendListener = eventListener;
-	}
 
 	public DataMessage getData() {
 		return new DataMessage()

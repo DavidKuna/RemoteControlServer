@@ -6,7 +6,10 @@ import android.util.Log;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
+import cz.davidkuna.remotecontrolserver.helpers.Network;
+import cz.davidkuna.remotecontrolserver.helpers.Settings;
 import cz.davidkuna.remotecontrolserver.multicast.Multicast;
+import cz.davidkuna.remotecontrolserver.socket.StunConnection;
 
 /**
  * Created by David Kuna on 13.3.16.
@@ -15,16 +18,26 @@ public class SensorDataStream {
 
     private final String TAG = "SensorDataStream";
     private final int BUFFER_SIZE = 2000;
-    private final int INTERVAL = 100; // miliseconds
+    private final int INTERVAL = 500; // miliseconds
 
-    private int mPort;
     private volatile boolean mRunning = false;
     private Thread mWorker = null;
     private SensorController sensorController;
+    Multicast multicast = null;
 
-    public SensorDataStream(int port, SensorController sensorController) throws IOException {
-        mPort = port;
+    public SensorDataStream(Settings settings, SensorController sensorController) throws IOException {
+        if(settings.isUseStun()) {
+            StunConnection connection = new StunConnection(Network.getLocalInetAddress(),
+                    settings.getStunServer(),
+                    settings.getStunPort(),
+                    settings.getRelayServer(),
+                    settings.getSensorToken());
+            multicast = new Multicast(connection, BUFFER_SIZE);
+        } else {
+            multicast = new Multicast(settings.getSensorUDPPort(), BUFFER_SIZE);
+        }
         this.sensorController = sensorController;
+
     }
 
     public void start()
@@ -55,6 +68,10 @@ public class SensorDataStream {
 
         mRunning = false;
         mWorker.interrupt();
+        if (multicast != null)
+        {
+            multicast.stop();
+        }
     }
 
     private void workerRun()
@@ -74,10 +91,11 @@ public class SensorDataStream {
 
     private void acceptAndStream() throws IOException {
         DataOutputStream stream = null;
-        Multicast multicast = null;
+
         try {
-            multicast = new Multicast(mPort, BUFFER_SIZE);
-            multicast.open();
+            try {
+                multicast.open();
+            } catch (IllegalStateException e) {}
             stream = new DataOutputStream(multicast);
 
             while (mRunning) {
@@ -98,10 +116,6 @@ public class SensorDataStream {
                 {
                     System.err.println(closingStream);
                 }
-            }
-            if (multicast != null)
-            {
-                multicast.stop();
             }
         }
     }
