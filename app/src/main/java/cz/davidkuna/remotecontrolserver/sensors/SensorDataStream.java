@@ -68,6 +68,10 @@ public class SensorDataStream {
 
         mRunning = false;
         mWorker.interrupt();
+        if (multicast != null)
+        {
+            multicast.stop();
+        }
     }
 
     private void workerRun()
@@ -89,7 +93,9 @@ public class SensorDataStream {
         DataOutputStream stream = null;
 
         try {
-            multicast.open();
+            try {
+                multicast.open();
+            } catch (IllegalStateException e) {}
             stream = new DataOutputStream(multicast);
 
             while (mRunning) {
@@ -110,10 +116,6 @@ public class SensorDataStream {
                 {
                     System.err.println(closingStream);
                 }
-            }
-            if (multicast != null)
-            {
-                multicast.stop();
             }
         }
     }

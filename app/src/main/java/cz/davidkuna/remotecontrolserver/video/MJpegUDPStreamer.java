@@ -116,6 +116,10 @@ import cz.davidkuna.remotecontrolserver.socket.StunConnection;
 
         mRunning = false;
         mWorker.interrupt();
+        if (multicast != null)
+        {
+            multicast.stop();
+        }
     } // stop()
 
     /* package */ void streamJpeg(final byte[] jpeg, final int length, final long timestamp)
@@ -160,8 +164,11 @@ import cz.davidkuna.remotecontrolserver.socket.StunConnection;
     {
         DataOutputStream stream = null;
 
-        try {
-            multicast.open();
+
+            try {
+                try {
+                    multicast.open();
+                } catch (IllegalStateException e) {}
             stream = new DataOutputStream(multicast);
             stream.writeBytes(HTTP_HEADER);
             stream.flush();
@@ -219,10 +226,6 @@ import cz.davidkuna.remotecontrolserver.socket.StunConnection;
                 {
                     System.err.println(closingStream);
                 }
-            }
-            if (multicast != null)
-            {
-                multicast.stop();
             }
         }
     } // try

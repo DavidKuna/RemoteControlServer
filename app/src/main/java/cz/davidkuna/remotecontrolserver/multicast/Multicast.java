@@ -191,6 +191,7 @@ public class Multicast extends UDPOutputStream implements SocketDatagramListener
         synchronized(clients) {
             for (MulticastClient client : clients) {
                 client.getOutputStream().close();
+                clients.remove(client);
             }
         }
         Log.d(TAG, "CLOSE");
