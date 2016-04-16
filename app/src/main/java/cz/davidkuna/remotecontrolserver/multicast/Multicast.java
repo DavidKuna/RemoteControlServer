@@ -95,7 +95,9 @@ public class Multicast extends UDPOutputStream implements SocketDatagramListener
         }
 
         mRunning = false;
-        ds.close();
+        if (ds != null) {
+            ds.close();
+        }
         mWorker.interrupt();
         mCleaner.interrupt();
 

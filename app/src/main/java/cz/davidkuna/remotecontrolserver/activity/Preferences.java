@@ -28,12 +28,15 @@ public class Preferences extends Activity {
 
     public static final String PREF_USE_STUN = "useStun";
     public static final String PREF_STUN_SERVER = "stunServer";
+    public static final String PREF_STUN_PORT = "stunPort";
     public static final String PREF_RELAY_SERVER = "relayServer";
 
     private final String DEF_STUN_SERVER = "stun.sipgate.net";
+    private final String DEF_RELAY_SERVER = "http://remotecontrol.8u.cz/wp-login.php";
 
     private SharedPreferences prefs;
     private EditText stunServer = null;
+    private EditText stunPort = null;
     private EditText relayServer = null;
     private CheckBox useStun = null;
 
@@ -44,6 +47,7 @@ public class Preferences extends Activity {
         prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
         stunServer = (EditText) findViewById(R.id.stunServer);
+        stunPort = (EditText) findViewById(R.id.stunPort);
         relayServer = (EditText) findViewById(R.id.relayServer);
         useStun = (CheckBox) findViewById(R.id.useStun);
         Button save = (Button) findViewById(R.id.bSave);
@@ -66,16 +70,17 @@ public class Preferences extends Activity {
     private void savePreferences() {
         prefs.edit().putBoolean(PREF_USE_STUN, useStun.isChecked()).commit();
         prefs.edit().putString(PREF_STUN_SERVER, stunServer.getText().toString()).commit();
+        prefs.edit().putInt(PREF_STUN_PORT, Integer.valueOf(stunPort.getText().toString())).commit();
         prefs.edit().putString(PREF_RELAY_SERVER, relayServer.getText().toString()).commit();
         prefs.edit().apply();
         Toast toast = Toast.makeText(this, "Settings has been saved", Toast.LENGTH_SHORT);
         toast.show();
-        startActivity(new Intent(this,Preferences.class));
     }
 
     private void loadPreferences() {
         useStun.setChecked(prefs.getBoolean(PREF_USE_STUN, false));
         stunServer.setText(prefs.getString(PREF_STUN_SERVER, DEF_STUN_SERVER));
-        relayServer.setText(prefs.getString(PREF_RELAY_SERVER, ""));
+        relayServer.setText(prefs.getString(PREF_RELAY_SERVER, DEF_RELAY_SERVER));
+        stunPort.setText(Integer.toString(prefs.getInt(PREF_STUN_PORT, 10000)));
     }
 }

@@ -51,6 +51,7 @@ public class StunConnection {
     private final String HEART_BEAT = "beat";
     private Relation relation = null;
     private String token;
+    private final int CONNECTION_TIMEOUT = 30000; //ms
 
     private boolean serverActive = true;
     private static final int MAX_UDP_DATAGRAM_LEN = 4096;
@@ -65,54 +66,62 @@ public class StunConnection {
     }
 
     public boolean connect() {
-        while (true) {
+        long startTime = System.currentTimeMillis();
+        while (serverActive && (startTime + CONNECTION_TIMEOUT) > System.currentTimeMillis()) {
             try {
                 if (loadMappedAddress()) {
+                    while (serverActive && (startTime + CONNECTION_TIMEOUT) > System.currentTimeMillis()) {
+                        if (createRelation(token)) {
 
-                    createRelation(token);
+                            heartBeat = new Thread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    byte[] data = HEART_BEAT.getBytes();
 
-                    heartBeat = new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            byte[] data = HEART_BEAT.getBytes();
+                                    while (serverActive) {
+                                        try {
+                                            DatagramPacket send = new DatagramPacket(data, data.length, InetAddress.getByName(relatedIp), relatedPort);
+                                            Log.d(TAG, "Beat to " + relatedIp + ":" + relatedPort);
+                                            socket.send(send);
+                                            Thread.sleep(5000);
+                                        } catch (IOException e) {
+                                            e.printStackTrace();
+                                        } catch (InterruptedException e) {
+                                            e.printStackTrace();
+                                        }
+                                    }
+                                }
+                            });
+                            heartBeat.start();
 
-                            while(serverActive) {
-                                try {
-                                    DatagramPacket send = new DatagramPacket(data, data.length, InetAddress.getByName(relatedIp), relatedPort);
-                                    Log.d("HEART BEAT",relatedIp + ":" + relatedPort);
-                                    socket.send(send);
-                                    Thread.sleep(1000);
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                } catch (InterruptedException e) {
-                                    e.printStackTrace();
+                            byte[] lMsg = new byte[MAX_UDP_DATAGRAM_LEN];
+                            while (serverActive) {
+                                DatagramPacket incoming = new DatagramPacket(lMsg, lMsg.length);
+                                socket.receive(incoming);
+                                byte[] receivedData = incoming.getData();
+                                String s = new String(receivedData, 0, incoming.getLength());
+                                if (!s.equals(HEART_BEAT) && socketDatagramListener != null) {
+                                    socketDatagramListener.onDatagramReceived(incoming);
                                 }
                             }
-                        }
-                    });
-                    heartBeat.start();
-
-                    byte[] lMsg = new byte[MAX_UDP_DATAGRAM_LEN];
-                    while(serverActive)
-                    {
-                        DatagramPacket incoming = new DatagramPacket(lMsg, lMsg.length);
-                        socket.receive(incoming);
-                        byte[] receivedData = incoming.getData();
-                        String s = new String(receivedData, 0, incoming.getLength());
-                        Log.i("UDP packet received", incoming.getAddress().getHostAddress() + " : " + incoming.getPort() + " - " + s);
-                        if (!s.equals(HEART_BEAT) && socketDatagramListener != null) {
-                            socketDatagramListener.onDatagramReceived(incoming);
+                        } else {
+                            Log.d(TAG, "Creating relation failed - repeat");
                         }
                     }
+                } else {
+                    Log.d(TAG, "Getting mapped address failed - repeat");
                 }
             } catch (UnknownHostException e) {
                 e.printStackTrace();
             } catch (SocketException e) {
+                serverActive = false;
                 e.printStackTrace();
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
+        Log.d(TAG, "Connection timeout");
+        return true;
     }
 
     private boolean loadMappedAddress() {
@@ -184,20 +193,21 @@ public class StunConnection {
                     URLEncoder.encode(String.valueOf(ma.getPort()), charset));
             URL relayServerURL = new URL(relayServer + "?" + query);
 
-            String encoding = Base64.encodeToString(new String("wendy:wendy").getBytes(), Base64.DEFAULT);
+            //String encoding = Base64.encodeToString(new String("wendy:wendy").getBytes(), Base64.DEFAULT);
 
             while (!related) {
                 HttpURLConnection connection = (HttpURLConnection) relayServerURL.openConnection();
                 connection.setRequestMethod("GET");
-                connection.setRequestProperty("Host", "punkstore.wendy.netdevelo.cz");
+                connection.setUseCaches(false);
+                connection.setAllowUserInteraction(false);
                 connection.setRequestProperty("User-Agent", "Mozilla/4.0");
+                connection.setRequestProperty("Host", relayServerURL.getHost());
                 connection.setRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
                 connection.setRequestProperty("Accept-Language", "en-us,en;q=0.5");
                 connection.setRequestProperty("Accept-Charset", "ISO-8859-1,utf-8;q=0.7,*;q=0.7");
-                connection.setRequestProperty("Keep-Alive", "115");
                 connection.setRequestProperty("Connection", "keep-alive");
                 connection.setRequestProperty("Accept-Charset", charset);
-                connection.setRequestProperty("Authorization", "Basic " + encoding);
+                //connection.setRequestProperty("Authorization", "Basic " + encoding);
 
                 int statusCode = connection.getResponseCode();
 
@@ -214,7 +224,10 @@ public class StunConnection {
                             relatedIp = json.getString("ip");
                             relatedPort = json.getInt("port");
                             related = true;
-                            relation.onRelationCreated();
+                            if (relation != null) {
+                                relation.onRelationCreated();
+                            }
+                            Log.d(TAG, "Relation created " + relatedIp + ":" + relatedPort);
                             return true;
                         }
 
@@ -224,6 +237,8 @@ public class StunConnection {
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
+                } else {
+                    Log.d(TAG, "Waiting for relation. Code " + statusCode);
                 }
 
                 SystemClock.sleep(5000);
@@ -236,11 +251,10 @@ public class StunConnection {
     }
 
     public void send(String messgage) {
-        if (serverActive && related) {
+        if (serverActive && isRelated()) {
             try {
                 DatagramPacket send = null;
                 send = new DatagramPacket(messgage.getBytes(), messgage.length(), InetAddress.getByName(relatedIp), relatedPort);
-                Log.d("RELATION", "Sending to " + relatedIp + ":" + relatedPort + " " + messgage);
                 socket.send(send);
             } catch (UnknownHostException e) {
                 e.printStackTrace();
@@ -254,8 +268,11 @@ public class StunConnection {
         if (heartBeat != null) {
             heartBeat.interrupt();
         }
+        serverActive = false;
 
-        socket.close();
+        if (socket != null) {
+            socket.close();
+        }
     }
 
     public void setSocketDatagramListener(SocketDatagramListener listener) {
@@ -272,5 +289,9 @@ public class StunConnection {
 
     public void setRelation(Relation relation) {
         this.relation = relation;
+    }
+
+    public boolean isRelated() {
+        return related;
     }
 }

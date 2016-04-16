@@ -18,7 +18,7 @@ public class SensorDataStream {
 
     private final String TAG = "SensorDataStream";
     private final int BUFFER_SIZE = 2000;
-    private final int INTERVAL = 100; // miliseconds
+    private final int INTERVAL = 500; // miliseconds
 
     private volatile boolean mRunning = false;
     private Thread mWorker = null;

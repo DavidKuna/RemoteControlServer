@@ -5,10 +5,7 @@ import cz.davidkuna.remotecontrolserver.helpers.Network;
 import cz.davidkuna.remotecontrolserver.helpers.Settings;
 import cz.davidkuna.remotecontrolserver.sensors.SensorController;
 import cz.davidkuna.remotecontrolserver.sensors.SensorDataStream;
-import cz.davidkuna.remotecontrolserver.socket.SendClientMessageListener;
-import cz.davidkuna.remotecontrolserver.socket.SocketServer;
-import cz.davidkuna.remotecontrolserver.socket.SocketServerEventListener;
-import cz.davidkuna.remotecontrolserver.socket.UDPServer;
+import cz.davidkuna.remotecontrolserver.socket.ControlCommandListener;
 import cz.davidkuna.remotecontrolserver.video.CameraStream;
 
 import android.app.Activity;
@@ -43,7 +40,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends Activity implements SendClientMessageListener, SocketServerEventListener, OnClickListener {
+public class MainActivity extends Activity implements OnClickListener {
 	
 	public static final String LOGTAG = "RC_SERVER";
 
@@ -52,8 +49,7 @@ public class MainActivity extends Activity implements SendClientMessageListener,
     public final int DEFAULT_CAMERA_STREAM_PORT = 8080;
 	public final int DEFAULT_STUN_SERVER_PORT = 10000;
 
-	private UDPServer udpServer = null;
-	private SocketServer socketServer;
+	private ControlCommandListener controlCommandListener = null;
 	private SensorController sensorController;
 	private SensorDataStream sensorDataStream;
 
@@ -98,7 +94,7 @@ public class MainActivity extends Activity implements SendClientMessageListener,
 				.setSensorUDPPort(DEFAULT_SENSOR_STREAM_PORT)
 				.setControlUDPPort(DEFAULT_COMMAND_LISTENER_PORT)
 				.setStunServer(prefs.getString(Preferences.PREF_STUN_SERVER, ""))
-				.setStunPort(DEFAULT_STUN_SERVER_PORT)
+				.setStunPort(prefs.getInt(Preferences.PREF_STUN_PORT, DEFAULT_STUN_SERVER_PORT))
 				.setRelayServer(prefs.getString(Preferences.PREF_RELAY_SERVER, ""))
 				.setUseStun(prefs.getBoolean(Preferences.PREF_USE_STUN, false));
 	}
@@ -125,54 +121,26 @@ public class MainActivity extends Activity implements SendClientMessageListener,
 			e.printStackTrace();
 		}
 	}
-
-	@Override
-	protected void onStop() {
-		super.onStop();
-		if(socketServer != null) {
-			socketServer.close();
-		}		
-	}
     
     public void enableSensorController() {
 		sensorController = new SensorController(getApplicationContext());
-		sensorController.setSendClientMessageListener(this);
 		sensorController.start();
     }
     
     public void disableSensorController() {
     	sensorController.closeControl();
     }
-    
-    public void startSocketServer() {
-    	if (socketServer == null) {
-    		socketServer = new SocketServer();
-    		onSocketServerEvent(SocketServer.EVENT_START);
-    		socketServer.setSocketServerEventListener(this);
-		} else if (socketServer.isClosed()) {
-			socketServer.start();
-		}
-    }
 
 	public void startUDPServer() {
-		udpServer = new UDPServer();
-		udpServer.runUdpServer(settings.getControlUDPPort(), sensorController);
-
 		try {
+			controlCommandListener = new ControlCommandListener(settings);
+			controlCommandListener.open();
 			sensorDataStream = new SensorDataStream(settings, sensorController);
 			sensorDataStream.start();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
-    
-    public boolean isSocketServerRunning() {
-    	if (socketServer == null || socketServer.isClosed()) {
-    		return false;
-		} else {
-			return true;
-		}
-    }
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
@@ -197,25 +165,16 @@ public class MainActivity extends Activity implements SendClientMessageListener,
 	@Override
 	public void onClick(View view) {
 		if (view.getId() == R.id.toggleSocketServer) {
-			//toggleSocketServer();
 			toggleUDPServer();
 		}
 	}
 
-	private void toggleSocketServer() {
-		if (!isSocketServerRunning()) {
-			startSocketServer();
-		} else {
-			socketServer.close();
-		}
-	}
-
 	private void toggleUDPServer() {
-		if (!isSocketServerRunning()) {
+		if (true) {
 			enableSensorController();
 			startUDPServer();
 		} else {
-			udpServer.stopUDPServer();
+			controlCommandListener.close();
 			sensorDataStream.stop();
 			disableSensorController();
 		}
@@ -229,34 +188,13 @@ public class MainActivity extends Activity implements SendClientMessageListener,
 		}
 	}
 
-	@Override
-	public void onSendClientMessage(String message) {
-		if(socketServer != null) {
-			socketServer.sendMessage(message);
-		}
-	}
-
-	@Override
-	public void onSocketServerEvent(final int event) {
-		runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if (event == SocketServer.EVENT_START) {
-                    Log.d(LOGTAG, getString(R.string.start_server));
-                } else if (event == SocketServer.EVENT_STOP) {
-                    Log.d(LOGTAG, getString(R.string.stoped));
-                } else if (event == SocketServer.EVENT_CLIENT_CONNECT) {
-                    Log.d(LOGTAG, getString(R.string.connection_status));
-                } else if (event == SocketServer.EVENT_CLIENT_DISCONNECT) {
-                    Log.d(LOGTAG, getString(R.string.disconnected));
-                }
-            }
-        });
-	}
-
 	public void cameraStreamStart(View v) {
 		Log.d("Camera Stream", "Click");
-		cameraStream.start();
+		if (cameraStream.isRunning()) {
+			cameraStream.stop();
+		} else {
+			cameraStream.start();
+		}
 	}
 
 	private void initCameraSizes(int mCameraIndex) {

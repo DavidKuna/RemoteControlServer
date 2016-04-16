@@ -85,7 +85,7 @@ public final class CameraStream implements SurfaceHolder.Callback
         tryStartCameraStreamer();
     }
 
-      protected void stop()
+      public void stop()
     {
         mRunning = false;
         if (mPrefs != null)
@@ -207,6 +207,10 @@ public final class CameraStream implements SurfaceHolder.Callback
                 */
         return false;
     } // hasFlashLight()
+
+    public boolean isRunning() {
+        return mRunning;
+    }
 
 } // class CameraStream
 
