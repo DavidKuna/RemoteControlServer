@@ -51,6 +51,7 @@ public class StunConnection {
     private final String HEART_BEAT = "beat";
     private Relation relation = null;
     private String token;
+    private boolean tunelOpen = false;
     private final int CONNECTION_TIMEOUT = 30000; //ms
 
     private boolean serverActive = true;
@@ -78,12 +79,12 @@ public class StunConnection {
                                 public void run() {
                                     byte[] data = HEART_BEAT.getBytes();
 
-                                    while (serverActive) {
+                                    while (serverActive && !tunelOpen) {
                                         try {
                                             DatagramPacket send = new DatagramPacket(data, data.length, InetAddress.getByName(relatedIp), relatedPort);
                                             Log.d(TAG, "Beat to " + relatedIp + ":" + relatedPort);
                                             socket.send(send);
-                                            Thread.sleep(5000);
+                                            Thread.sleep(1000);
                                         } catch (IOException e) {
                                             e.printStackTrace();
                                         } catch (InterruptedException e) {
@@ -102,6 +103,9 @@ public class StunConnection {
                                 String s = new String(receivedData, 0, incoming.getLength());
                                 if (!s.equals(HEART_BEAT) && socketDatagramListener != null) {
                                     socketDatagramListener.onDatagramReceived(incoming);
+                                }
+                                if (s.equals(HEART_BEAT)) {
+                                    tunelOpen = true;
                                 }
                             }
                         } else {
@@ -251,6 +255,7 @@ public class StunConnection {
     }
 
     public void send(String messgage) {
+        Log.d(TAG, "Send message " + messgage);
         if (serverActive && isRelated()) {
             try {
                 DatagramPacket send = null;
