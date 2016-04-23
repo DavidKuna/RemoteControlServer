@@ -33,12 +33,14 @@ import java.util.List;
 
 import cz.davidkuna.remotecontrolserver.helpers.Settings;
 
-/* package */ final class CameraStreamer extends Object
+public final class CameraStreamer extends Object
 {
     private static final String TAG = CameraStreamer.class.getSimpleName();
 
     private static final int MESSAGE_TRY_START_STREAMING = 0;
     private static final int MESSAGE_SEND_PREVIEW_FRAME = 1;
+
+    private static final int MAX_FPS = 30;
 
     private static final long OPEN_CAMERA_POLL_INTERVAL_MS = 1000L;
 
@@ -67,8 +69,9 @@ import cz.davidkuna.remotecontrolserver.helpers.Settings;
 
     private long mNumFrames = 0L;
     private long mLastTimestamp = Long.MIN_VALUE;
+    private long lastSentTimestamp = Long.MIN_VALUE;
 
-    /* package */ CameraStreamer(final int cameraIndex, final boolean useFlashLight, Settings settings,
+    public CameraStreamer(final int cameraIndex, final boolean useFlashLight, Settings settings,
                                  final int previewSizeIndex, final int jpegQuality, final SurfaceHolder previewDisplay)
     {
         super();
@@ -76,7 +79,7 @@ import cz.davidkuna.remotecontrolserver.helpers.Settings;
         if (previewDisplay == null)
         {
             throw new IllegalArgumentException("previewDisplay must not be null");
-        } // if
+        }
 
         mCameraIndex = cameraIndex;
         mUseFlashLight = useFlashLight;
@@ -84,6 +87,8 @@ import cz.davidkuna.remotecontrolserver.helpers.Settings;
         mPreviewSizeIndex = previewSizeIndex;
         mJpegQuality = jpegQuality;
         mPreviewDisplay = previewDisplay;
+        Log.d(TAG, "Selected video quality:" + jpegQuality + "| sizeIndex:" + previewSizeIndex);
+
     }
 
     private final class WorkHandler extends Handler
@@ -107,20 +112,20 @@ import cz.davidkuna.remotecontrolserver.helpers.Settings;
                     break;
                 default:
                     throw new IllegalArgumentException("cannot handle message");
-            } // switch
-        } // handleMessage(Message)
-    } // class WorkHandler
+            }
+        }
+    }
 
-    /* package */ void start()
+    public void start()
     {
         synchronized (mLock)
         {
             if (mRunning)
             {
                 throw new IllegalStateException("CameraStreamer is already running");
-            } // if
+            }
             mRunning = true;
-        } // synchronized
+        }
 
         final HandlerThread worker = new HandlerThread(TAG, Process.THREAD_PRIORITY_MORE_FAVORABLE);
         worker.setDaemon(true);
@@ -128,93 +133,87 @@ import cz.davidkuna.remotecontrolserver.helpers.Settings;
         mLooper = worker.getLooper();
         mWorkHandler = new WorkHandler(mLooper);
         mWorkHandler.obtainMessage(MESSAGE_TRY_START_STREAMING).sendToTarget();
-    } // open()
+    }
 
     /**
      *  Stop the image streamer. The camera will be released during the
      *  execution of stop() or shortly after it returns. stop() should
      *  be called on the main thread.
      */
-    /* package */ void stop()
+    public void stop()
     {
         synchronized (mLock)
         {
             if (!mRunning)
             {
                 throw new IllegalStateException("CameraStreamer is already stopped");
-            } // if
+            }
 
             mRunning = false;
             if (mMJpegUDPStreamer != null)
             {
                 mMJpegUDPStreamer.stop();
-            } // if
+            }
             if (mCamera != null)
             {
                 mCamera.release();
                 mCamera = null;
-            } // if
-        } // synchronized
+            }
+        }
         mLooper.quit();
-    } // stop()
+    }
 
     private void tryStartStreaming()
     {
         try
         {
-            while (true)
+            while (mRunning)
             {
                 try
                 {
                     startStreamingIfRunning();
-                } //try
+                }
                 catch (final RuntimeException openCameraFailed)
                 {
                     Log.d(TAG, "Open camera failed, retying in " + OPEN_CAMERA_POLL_INTERVAL_MS
                             + "ms", openCameraFailed);
                     Thread.sleep(OPEN_CAMERA_POLL_INTERVAL_MS);
                     continue;
-                } // catch
+                }
                break;
-            } // while
-        } // try
+            }
+        }
         catch (final Exception startPreviewFailed)
         {
-            // Captures the IOException from startStreamingIfRunning and
-            // the InterruptException from Thread.sleep.
             Log.w(TAG, "Failed to open camera preview", startPreviewFailed);
-        } // catch
-    } // tryStartStreaming()
+        }
+    }
 
     private void startStreamingIfRunning() throws IOException
     {
-        // Throws RuntimeException if the camera is currently opened
-        // by another application.
+
         final Camera camera = Camera.open(mCameraIndex);
         final Camera.Parameters params = camera.getParameters();
 
         final List<Camera.Size> supportedPreviewSizes = params.getSupportedPreviewSizes();
+        Log.d(TAG, "Set preview size: " + mPreviewSizeIndex);
         final Camera.Size selectedPreviewSize = supportedPreviewSizes.get(mPreviewSizeIndex);
         params.setPreviewSize(selectedPreviewSize.width, selectedPreviewSize.height);
 
         if (mUseFlashLight)
         {
             params.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
-        } // if
+        }
 
-        // Set Preview FPS range. The range with the greatest maximum
-        // is returned first.
         final List<int[]> supportedPreviewFpsRanges = params.getSupportedPreviewFpsRange();
-        // XXX: However sometimes it returns null. This is a known bug
-        // https://code.google.com/p/android/issues/detail?id=6271
-        // In which case, we just don't set it.
+
         if (supportedPreviewFpsRanges != null)
         {
             final int[] range = supportedPreviewFpsRanges.get(0);
             params.setPreviewFpsRange(range[Camera.Parameters.PREVIEW_FPS_MIN_INDEX],
                     range[Camera.Parameters.PREVIEW_FPS_MAX_INDEX]);
             camera.setParameters(params);
-        } // if
+        }
 
         // Set up preview callback
         mPreviewFormat = params.getPreviewFormat();
@@ -223,19 +222,14 @@ import cz.davidkuna.remotecontrolserver.helpers.Settings;
         mPreviewHeight = previewSize.height;
         final int BITS_PER_BYTE = 8;
         final int bytesPerPixel = ImageFormat.getBitsPerPixel(mPreviewFormat) / BITS_PER_BYTE;
-        // XXX: According to the documentation the buffer size can be
-        // calculated by width * height * bytesPerPixel. However, this
-        // returned an error saying it was too small. It always needed
-        // to be exactly 1.5 times larger.
+
         mPreviewBufferSize = mPreviewWidth * mPreviewHeight * bytesPerPixel * 3 / 2 + 1;
         camera.addCallbackBuffer(new byte[mPreviewBufferSize]);
         mPreviewRect = new Rect(0, 0, mPreviewWidth, mPreviewHeight);
         camera.setPreviewCallbackWithBuffer(mPreviewCallback);
 
-        // We assumed that the compressed image will be no bigger than
-        // the uncompressed image.
         mJpegOutputStream = new MemoryOutputStream(mPreviewBufferSize);
-
+        Log.d(TAG, "PreviewBufferSize = " + mPreviewBufferSize);
         final MJpegUDPStreamer streamer = new MJpegUDPStreamer(settings, mPreviewBufferSize);
         streamer.start();
 
@@ -244,26 +238,28 @@ import cz.davidkuna.remotecontrolserver.helpers.Settings;
             if (!mRunning)
             {
                 streamer.stop();
+                camera.stopPreview();
                 camera.release();
                 return;
-            } // if
+            }
 
             try
             {
                 camera.setPreviewDisplay(mPreviewDisplay);
-            } // try
+            }
             catch (final IOException e)
             {
                 streamer.stop();
+                camera.stopPreview();
                 camera.release();
                 throw e;
-            } // catch
+            }
 
             mMJpegUDPStreamer = streamer;
             camera.startPreview();
             mCamera = camera;
-        } // synchronized
-    } // startStreamingIfRunning()
+        }
+    }
 
     private final Camera.PreviewCallback mPreviewCallback = new Camera.PreviewCallback()
     {
@@ -276,7 +272,7 @@ import cz.davidkuna.remotecontrolserver.helpers.Settings;
             message.obj = new Object[]{ data, camera, timestamp };
             message.sendToTarget();
         } // onPreviewFrame(byte[], Camera)
-    }; // mPreviewCallback
+    };
 
    private void sendPreviewFrame(final byte[] data, final Camera camera, final long timestamp)
    {
@@ -284,38 +280,37 @@ import cz.davidkuna.remotecontrolserver.helpers.Settings;
         final long MILLI_PER_SECOND = 1000L;
         final long timestampSeconds = timestamp / MILLI_PER_SECOND;
 
-        // Update and log the frame rate
-        final long LOGS_PER_FRAME = 10L;
-        mNumFrames++;
-        if (mLastTimestamp != Long.MIN_VALUE)
-        {
-            mAverageSpf.update(timestampSeconds - mLastTimestamp);
-            if (mNumFrames % LOGS_PER_FRAME == LOGS_PER_FRAME - 1)
-            {
-                Log.d(TAG, "FPS: " + 1.0 / mAverageSpf.getAverage());
-            } // if
-        } // else
+       if ((lastSentTimestamp + (MILLI_PER_SECOND / MAX_FPS)) < timestamp) {
+           lastSentTimestamp = timestamp;
+           // Update and log the frame rate
+           final long LOGS_PER_FRAME = 10L;
+           mNumFrames++;
+           if (mLastTimestamp != Long.MIN_VALUE) {
+               mAverageSpf.update(timestampSeconds - mLastTimestamp);
+               if (mNumFrames % LOGS_PER_FRAME == LOGS_PER_FRAME - 1) {
+                   Log.d(TAG, "FPS: " + 1.0 / mAverageSpf.getAverage());
+               }
+           }
 
-        mLastTimestamp = timestampSeconds;
+           mLastTimestamp = timestampSeconds;
 
-        // Create JPEG
-        final YuvImage image = new YuvImage(data, mPreviewFormat, mPreviewWidth, mPreviewHeight,
-                null /* strides */);
-        image.compressToJpeg(mPreviewRect, mJpegQuality, mJpegOutputStream);
+           // Create JPEG
+           final YuvImage image = new YuvImage(data, mPreviewFormat, mPreviewWidth, mPreviewHeight,
+                   null /* strides */);
+           image.compressToJpeg(mPreviewRect, mJpegQuality, mJpegOutputStream);
 
         /*mMJpegHttpStreamer.streamJpeg(mJpegOutputStream.getBuffer(), mJpegOutputStream.getLength(),
                 timestamp);*/
 
-        mMJpegUDPStreamer.streamJpeg(mJpegOutputStream.getBuffer(), mJpegOutputStream.getLength(), timestamp);
+           mMJpegUDPStreamer.streamJpeg(mJpegOutputStream.getBuffer(), mJpegOutputStream.getLength(), timestamp);
 
-        // Clean up
-        mJpegOutputStream.seek(0);
-        // XXX: I believe that this is thread-safe because we're not
-        // calling methods in other threads. I might be wrong, the
-        // documentation is not clear.
+           // Clean up
+           mJpegOutputStream.seek(0);
+       }
+
         camera.addCallbackBuffer(data);
-   } // sendPreviewFrame(byte[], camera, long)
+   }
 
 
-} // class CameraStreamer
+}
 

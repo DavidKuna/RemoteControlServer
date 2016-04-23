@@ -59,6 +59,7 @@ import cz.davidkuna.remotecontrolserver.socket.StunConnection;
     private Thread mWorker = null;
     private volatile boolean mRunning = false;
     private Multicast multicast = null;
+    private StunConnection connection = null;
 
     /* package */ MJpegUDPStreamer(final int port, final int bufferSize)
     {
@@ -75,7 +76,7 @@ import cz.davidkuna.remotecontrolserver.socket.StunConnection;
         mBufferB = new byte[bufferSize];
 
         if (settings.isUseStun()) {
-            StunConnection connection = new StunConnection(Network.getLocalInetAddress(),
+            connection = new StunConnection(Network.getLocalInetAddress(),
                     settings.getStunServer(),
                     settings.getStunPort(),
                     settings.getRelayServer(),
@@ -119,6 +120,9 @@ import cz.davidkuna.remotecontrolserver.socket.StunConnection;
         if (multicast != null)
         {
             multicast.stop();
+        }
+        if (connection != null) {
+            connection.close();
         }
     } // stop()
 

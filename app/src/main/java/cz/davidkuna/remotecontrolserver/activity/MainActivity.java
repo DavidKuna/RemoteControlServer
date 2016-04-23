@@ -1,14 +1,20 @@
 package cz.davidkuna.remotecontrolserver.activity;
 
 import cz.davidkuna.remotecontrolserver.R;
+import cz.davidkuna.remotecontrolserver.bluetooth.DeviceListActivity;
+import cz.davidkuna.remotecontrolserver.helpers.Command;
 import cz.davidkuna.remotecontrolserver.helpers.Network;
 import cz.davidkuna.remotecontrolserver.helpers.Settings;
 import cz.davidkuna.remotecontrolserver.sensors.SensorController;
 import cz.davidkuna.remotecontrolserver.sensors.SensorDataStream;
+import cz.davidkuna.remotecontrolserver.socket.CommandEventListener;
 import cz.davidkuna.remotecontrolserver.socket.ControlCommandListener;
 import cz.davidkuna.remotecontrolserver.video.CameraStream;
 
 import android.app.Activity;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
 import android.content.SharedPreferences;
 import android.hardware.Camera;
 import android.preference.PreferenceManager;
@@ -27,6 +33,7 @@ import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import com.google.gson.Gson;
@@ -37,17 +44,29 @@ import com.google.zxing.qrcode.QRCodeWriter;
 import com.journeyapps.barcodescanner.BarcodeEncoder;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class MainActivity extends Activity implements OnClickListener {
 	
-	public static final String LOGTAG = "RC_SERVER";
+	public static final String TAG = "RC_SERVER";
 
     public final int DEFAULT_COMMAND_LISTENER_PORT = 8000;
 	public final int DEFAULT_SENSOR_STREAM_PORT = 8001;
     public final int DEFAULT_CAMERA_STREAM_PORT = 8080;
 	public final int DEFAULT_STUN_SERVER_PORT = 10000;
+
+	BluetoothAdapter adapter;
+	BluetoothSocket socket;
+	OutputStream ons;
+	OutputStreamWriter osw;
+
+	private static final int REQUEST_ENABLE_BT = 3;
 
 	private ControlCommandListener controlCommandListener = null;
 	private SensorController sensorController;
@@ -75,6 +94,28 @@ public class MainActivity extends Activity implements OnClickListener {
 
         SurfaceHolder mPreviewDisplay = ((SurfaceView) findViewById(R.id.camera)).getHolder();
         cameraStream = new CameraStream(prefs, settings, mPreviewDisplay);
+
+		initBluetooth();
+	}
+
+	private void initBluetooth() {
+		adapter = BluetoothAdapter.getDefaultAdapter();
+		if (adapter != null) {
+			if (!adapter.isEnabled()) {
+				Intent enableBtIntent = new Intent(
+						BluetoothAdapter.ACTION_REQUEST_ENABLE);
+				Log.d(TAG, "startActivityForResult");
+				startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+			} else {
+				Log.d(TAG, "Bluetooth Adapter is enabled");
+			}
+		} else {
+			Log.d(TAG, "Bluetooth Adapter not found, nullAdapter");
+		}
+
+		Intent serverIntent = new Intent(this, DeviceListActivity.class);
+		int REQUEST_CONNECT_DEVICE_SECURE = 0;
+		startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE_SECURE);
 	}
 
 	@Override
@@ -86,6 +127,20 @@ public class MainActivity extends Activity implements OnClickListener {
 		}
 
 		qrCodeInit();
+	}
+
+	@Override
+	protected void onPause() {
+		super.onPause();
+		if (cameraStream != null) {
+			cameraStream.stop();
+		}
+		if (sensorDataStream != null) {
+			sensorDataStream.stop();
+		}
+		if (controlCommandListener != null) {
+			controlCommandListener.close();
+		}
 	}
 
 	private void loadSettings() {
@@ -112,7 +167,7 @@ public class MainActivity extends Activity implements OnClickListener {
 		Gson gson = new Gson();
 		String content = gson.toJson(settings).toString();
 		try {
-            ImageView imageView = (ImageView) findViewById(R.id.qrCode);
+			ImageView imageView = (ImageView) findViewById(R.id.qrCode);
 			BitMatrix bitMatrix = new QRCodeWriter().encode(content, BarcodeFormat.QR_CODE, qrDimensionSize, qrDimensionSize);
 			BarcodeEncoder barcodeEncoder = new BarcodeEncoder();
 
@@ -134,6 +189,12 @@ public class MainActivity extends Activity implements OnClickListener {
 	public void startUDPServer() {
 		try {
 			controlCommandListener = new ControlCommandListener(settings);
+			controlCommandListener.setCommandEventListener(new CommandEventListener() {
+				@Override
+				public void onCommandReceived(Command command) {
+					sendBt(command.getName().charAt(0));
+				}
+			});
 			controlCommandListener.open();
 			sensorDataStream = new SensorDataStream(settings, sensorController);
 			sensorDataStream.start();
@@ -164,26 +225,12 @@ public class MainActivity extends Activity implements OnClickListener {
 
 	@Override
 	public void onClick(View view) {
-		if (view.getId() == R.id.toggleSocketServer) {
-			toggleUDPServer();
-		}
-	}
-
-	private void toggleUDPServer() {
-		if (true) {
+		if (view.getId() == R.id.toggleSocketServer && toggleSocketServer.isChecked()) {
 			enableSensorController();
 			startUDPServer();
 		} else {
 			controlCommandListener.close();
 			sensorDataStream.stop();
-			disableSensorController();
-		}
-	}
-
-	private void toggleSensors() {
-		if (sensorController == null) {
-			enableSensorController();
-		} else {
 			disableSensorController();
 		}
 	}
@@ -202,20 +249,23 @@ public class MainActivity extends Activity implements OnClickListener {
         Spinner spinner = (Spinner) findViewById(R.id.cameraResolution);
 		final Camera camera = Camera.open(mCameraIndex);
 		final Camera.Parameters params = camera.getParameters();
-		// Check what resolutions are supported by your camera
-		List<Camera.Size> sizes = params.getSupportedPictureSizes();
+		List<Camera.Size> sizes = params.getSupportedPreviewSizes();
 
         ArrayList<String> options = new ArrayList<String>();
-		Camera.Size mSize;
 		for (Camera.Size size : sizes) {
 			options.add(size.width+"x"+size.height);
 		}
         camera.release();
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(getApplicationContext(), android.R.layout.simple_spinner_item,options);
-        spinner.setAdapter(adapter);
-        spinner.setSelection(Integer.valueOf(prefs.getString(CameraStream.PREF_JPEG_SIZE, "0")));
+		try {
+			ArrayAdapter<String> adapter = new ArrayAdapter<String>(getApplicationContext(), android.R.layout.simple_spinner_item,options);
+			spinner.setAdapter(adapter);
+			spinner.setSelection(Integer.valueOf(prefs.getString(CameraStream.PREF_JPEG_SIZE, "0")));
+		} catch (IndexOutOfBoundsException e) {
+			e.printStackTrace();
+			spinner.setSelection(0);
+		}
 
-        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+		spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 SharedPreferences.Editor editor = prefs.edit();
@@ -230,4 +280,49 @@ public class MainActivity extends Activity implements OnClickListener {
         });
     }
 
+	public void onActivityResult(int requestCode, int resultCode, Intent data) {
+		Log.d(TAG, "onActivityResult " + resultCode);
+
+		if (resultCode != 0) {
+			String address = data.getExtras().getString(
+					DeviceListActivity.EXTRA_DEVICE_ADDRESS);
+			// Get the BluetoothDevice object
+			BluetoothDevice device = adapter.getRemoteDevice(address);
+
+			try {
+				socket = device.createRfcommSocketToServiceRecord(UUID
+						.fromString("00001101-0000-1000-8000-00805F9B34FB"));
+				Log.d(TAG, "Socket before connect");
+				socket.connect();
+				Log.d(TAG, "Socket connected");
+				ons = socket.getOutputStream();
+				osw = new OutputStreamWriter(ons);
+				Toast.makeText(this, R.string.bt_device_connected, Toast.LENGTH_SHORT).show();
+
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				Toast.makeText(this, getString(R.string.bt_device_not_connected), Toast.LENGTH_SHORT).show();
+			}
+		} else {
+			Toast.makeText(this, getString(R.string.bt_device_not_connected), Toast.LENGTH_SHORT).show();
+		}
+
+	}
+
+	public void sendBt(char z) {
+
+		if (osw != null) {
+			synchronized (this) {
+				try {
+					osw.write(z);
+					osw.flush();
+				} catch (Exception ex) {
+					ex.printStackTrace();
+				}
+
+			}
+			Log.d(TAG, "BT " + z);
+		}
+	}
 }

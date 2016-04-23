@@ -23,7 +23,7 @@ public class ControlCommandListener implements SocketDatagramListener {
     private Thread mWorker = null;
     private StunConnection stunConnection = null;
     private Settings settings = null;
-
+    private CommandEventListener commandEventListener = null;
 
     public ControlCommandListener(Settings settings) {
         this.settings = settings;
@@ -94,6 +94,9 @@ public class ControlCommandListener implements SocketDatagramListener {
         } else if (command.getName().equals(Command.MOVE_RIGHT)) {
             Log.d("MOVE", "RIGHT");
         }
+        if (commandEventListener != null) {
+            commandEventListener.onCommandReceived(command);
+        }
     }
 
     public void close() {
@@ -101,5 +104,12 @@ public class ControlCommandListener implements SocketDatagramListener {
         {
             socket.close();
         }
+        if (stunConnection != null) {
+            stunConnection.close();
+        }
+    }
+
+    public void setCommandEventListener(CommandEventListener commandEventListener) {
+        this.commandEventListener = commandEventListener;
     }
 }

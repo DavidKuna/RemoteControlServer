@@ -43,8 +43,8 @@ public final class CameraStream implements SurfaceHolder.Callback
     private static final String PREF_FLASH_LIGHT = "flash_light";
     private static final boolean PREF_FLASH_LIGHT_DEF = false;
     public static final String PREF_JPEG_SIZE = "size";
-    private static final String PREF_JPEG_QUALITY = "jpeg_quality";
-    private static final int PREF_JPEG_QUALITY_DEF = 40;
+    public static final String PREF_JPEG_QUALITY = "jpeg_quality";
+    private static final int PREF_JPEG_QUALITY_DEF = 30;
     // preview sizes will always have at least one element, so this is safe
     private static final int PREF_PREVIEW_SIZE_INDEX_DEF = 0;
 

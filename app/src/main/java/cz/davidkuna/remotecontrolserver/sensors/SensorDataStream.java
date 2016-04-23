@@ -17,17 +17,18 @@ import cz.davidkuna.remotecontrolserver.socket.StunConnection;
 public class SensorDataStream {
 
     private final String TAG = "SensorDataStream";
-    private final int BUFFER_SIZE = 2000;
-    private final int INTERVAL = 500; // miliseconds
+    private final int BUFFER_SIZE = 1000;
+    private final int INTERVAL = 250; // miliseconds
 
     private volatile boolean mRunning = false;
     private Thread mWorker = null;
     private SensorController sensorController;
+    private StunConnection connection = null;
     Multicast multicast = null;
 
     public SensorDataStream(Settings settings, SensorController sensorController) throws IOException {
         if(settings.isUseStun()) {
-            StunConnection connection = new StunConnection(Network.getLocalInetAddress(),
+            connection = new StunConnection(Network.getLocalInetAddress(),
                     settings.getStunServer(),
                     settings.getStunPort(),
                     settings.getRelayServer(),
@@ -44,7 +45,8 @@ public class SensorDataStream {
     {
         if (mRunning)
         {
-            throw new IllegalStateException("SensorDataStream is already running");
+            Log.d(TAG, "SensorDataStream is already running");
+            return;
         }
 
         mRunning = true;
@@ -63,7 +65,8 @@ public class SensorDataStream {
     {
         if (!mRunning)
         {
-            throw new IllegalStateException("SensorDataStream is already stopped");
+            Log.d(TAG, "SensorDataStream is already stopped");
+            return;
         }
 
         mRunning = false;
@@ -72,6 +75,10 @@ public class SensorDataStream {
         {
             multicast.stop();
         }
+        if (connection != null) {
+            connection.close();
+        }
+        Log.d(TAG, "STOP");
     }
 
     private void workerRun()
